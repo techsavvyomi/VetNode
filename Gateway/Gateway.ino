@@ -33,11 +33,42 @@ Preferences preferences;
 
 bool oledOk = false, loraOk = false, gsmOk = false;
 
+// Multi-node tracking (up to 8 nodes)
+#define MAX_NODES 8
+struct NodeData {
+  int id;
+  float temp;
+  int hr;
+  int rssi;
+  uint16_t pktSeq;
+  uint32_t pktsRcvd;
+  uint32_t pktsLost;
+  unsigned long lastSeen;
+  bool hasHr;
+};
+NodeData nodes[MAX_NODES];
+int numActiveNodes = 0;
+
+NodeData *getNode(int cowId) {
+  for (int i = 0; i < MAX_NODES; i++)
+    if (nodes[i].id == cowId) return &nodes[i];
+  for (int i = 0; i < MAX_NODES; i++) {
+    if (nodes[i].id == 0) {
+      memset(&nodes[i], 0, sizeof(NodeData));
+      nodes[i].id = cowId;
+      nodes[i].rssi = -120;
+      numActiveNodes++;
+      return &nodes[i];
+    }
+  }
+  return nullptr;
+}
+
 // Configs
-float cfgTempHigh = 39.5, cfgTempLow = 37.0;
-int cfgHrHigh = 90, cfgHrLow = 50, cfgMockRateS = 10, cfgSleepMin = 0;
+float cfgTempHigh = 39.5, cfgTempLow = 37.0; // temp 
+int cfgHrHigh = 90, cfgHrLow = 50, cfgMockRateS = 10, cfgSleepMin = 0; //heart rate
 int cfgOledOffSec = 30; // Default 30 seconds
-char cfgGsmNum[16] = "+918898865508";
+char cfgGsmNum[16] = "+918805048846";
 bool cfgBuzzerOn = true;
 int cfgSmsIntMin = 5; // Default 5 minutes
 
@@ -52,7 +83,6 @@ unsigned long bootTime = 0;
 unsigned long lastSmsTime = 0;
 unsigned long lastPacketTime = 0;
 unsigned long lastRecoveryBtnTime = 0;
-#define SMS_COOLDOWN_MS 300000UL // 5 Minutes
 
 int beepRem = 0;
 unsigned long beepTimer = 0;
@@ -80,9 +110,10 @@ enum GsmState {
 MainState uiState = S_DASH;
 SubMenu currentMenu = M_NONE;
 GsmState gsmCommState = GSM_BOOT;
+GsmState gsmPrevState = GSM_BOOT;
 unsigned long gsmTimer = 0;
 int gsmRetryCount = 0;
-char gsmSmsBuffer[64] = "";
+char gsmSmsBuffer[96] = "";
 bool gsmSmsPending = false;
 
 int menuIndex = 0;
@@ -167,7 +198,7 @@ void loadConfig() {
   cfgSleepMin = preferences.getInt("slp", 0);
   cfgSmsIntMin = preferences.getInt("si", 5);
   cfgOledOffSec = preferences.getInt("oto", 30);
-  String num = preferences.getString("gsm", "+918898865508");
+  String num = preferences.getString("gsm", "+918805048846");
   num.toCharArray(cfgGsmNum, sizeof(cfgGsmNum));
   preferences.end();
 }
@@ -436,6 +467,28 @@ void renderEditPage() {
     display.setCursor(0, 50);
     display.print("(0=Off, 5-60)");
     display.setCursor(0, 54);
+    display.print("S:Next L.S:Save");
+  } else if (editConfigId == 6) {
+    display.println("GSM ADMIN NUMBER");
+    display.setCursor(0, 20);
+    int numLen = strlen(cfgGsmNum);
+    for (int i = 0; i < numLen; i++) {
+      if (i == editDigitIndex) {
+        display.setTextColor(SH110X_BLACK, SH110X_WHITE);
+        display.print(cfgGsmNum[i]);
+        display.setTextColor(SH110X_WHITE, SH110X_BLACK);
+      } else {
+        display.print(cfgGsmNum[i]);
+      }
+    }
+    display.setCursor(0, 36);
+    display.print("Digit: ");
+    display.print(editDigitIndex);
+    display.print("/");
+    display.print(numLen - 1);
+    display.setCursor(0, 48);
+    display.print("M:+1 L.M:-1");
+    display.setCursor(0, 56);
     display.print("S:Next L.S:Save");
   } else if (editConfigId == 7) {
     display.println("SMS ALERT INTRVL");
@@ -865,6 +918,12 @@ void handleLogicInput(char btn, bool isLongMode) {
         if (cfgSleepMin < 0)
           cfgSleepMin = 60;
       }
+      if (editConfigId == 6) {
+        char ch = cfgGsmNum[editDigitIndex];
+        if (ch > '0' && ch <= '9') ch--;
+        else if (ch == '0') ch = '9';
+        cfgGsmNum[editDigitIndex] = ch;
+      }
     } else if (btn == 'S' && !isLongMode) { // Check digit or save
       if (editConfigId == 6) {
         editDigitIndex++;
@@ -904,10 +963,10 @@ void handleLogicInput(char btn, bool isLongMode) {
 }
 
 void scanButtons() {
-  bool currentMenu = digitalRead(BTN_MENU),
-       currentSel = digitalRead(BTN_SELECT);
+  bool menuReading = digitalRead(BTN_MENU),
+       selReading = digitalRead(BTN_SELECT);
   unsigned long now = millis();
-  if (currentMenu == LOW && btnMenuState == HIGH) {
+  if (menuReading == LOW && btnMenuState == HIGH) {
     lastUserAction = now;
     menuPressTime = now;
     btnMenuState = LOW;
@@ -917,18 +976,18 @@ void scanButtons() {
       isOledOff = false;
       menuHandled = true; // Block action on wake press
     }
-  } else if (currentMenu == LOW && btnMenuState == LOW && !menuHandled) {
+  } else if (menuReading == LOW && btnMenuState == LOW && !menuHandled) {
     if (now - menuPressTime > 800) {
       handleLogicInput('M', true);
       menuHandled = true;
     }
-  } else if (currentMenu == HIGH && btnMenuState == LOW) {
+  } else if (menuReading == HIGH && btnMenuState == LOW) {
     if (!menuHandled && now - menuPressTime > 50)
       handleLogicInput('M', false);
     btnMenuState = HIGH;
   }
 
-  if (currentSel == LOW && btnSelState == HIGH) {
+  if (selReading == LOW && btnSelState == HIGH) {
     lastUserAction = now;
     selPressTime = now;
     btnSelState = LOW;
@@ -938,12 +997,12 @@ void scanButtons() {
       isOledOff = false;
       selHandled = true; // Block action on wake press
     }
-  } else if (currentSel == LOW && btnSelState == LOW && !selHandled) {
+  } else if (selReading == LOW && btnSelState == LOW && !selHandled) {
     if (now - selPressTime > 800) {
       handleLogicInput('S', true);
       selHandled = true;
     }
-  } else if (currentSel == HIGH && btnSelState == LOW) {
+  } else if (selReading == HIGH && btnSelState == LOW) {
     if (!selHandled && now - selPressTime > 50)
       handleLogicInput('S', false);
     btnSelState = HIGH;
@@ -959,6 +1018,7 @@ void handleGsmState() {
       Serial.println("[GSM] Sending AT (Boot)...");
       gsmSerial.print("AT\r\n");
       gsmTimer = now;
+      gsmPrevState = GSM_BOOT;
       gsmCommState = GSM_WAIT_RESP;
     }
     break;
@@ -975,6 +1035,7 @@ void handleGsmState() {
     Serial.println("[GSM] AT+CMGF=1");
     gsmSerial.print("AT+CMGF=1\r\n");
     gsmTimer = now;
+    gsmPrevState = GSM_SET_TEXT_MODE;
     gsmCommState = GSM_WAIT_RESP;
     break;
 
@@ -1002,7 +1063,7 @@ void handleGsmState() {
       } else if (strstr(resp, "OK")) {
         gsmOk = true;
         Serial.println("[GSM] Response: OK");
-        if (gsmSmsPending)
+        if (gsmPrevState == GSM_SET_TEXT_MODE && gsmSmsPending)
           gsmCommState = GSM_TX_SMS_START;
         else
           gsmCommState = GSM_IDLE;
@@ -1025,9 +1086,9 @@ void handleGsmState() {
 
   case GSM_WAIT_SMS_OK:
     if (gsmSerial.available()) {
-      char resp[64]; // Increased size for safety
+      char resp[64];
       int len = 0;
-      while (gsmSerial.available() && len < 31)
+      while (gsmSerial.available() && len < 63)
         resp[len++] = gsmSerial.read();
       resp[len] = '\0';
       if (strstr(resp, "OK") || strstr(resp, "+CMGS:")) {
@@ -1123,6 +1184,7 @@ void loop() {
     // Simple read: rely on RadioLib to manage FIFO
     int state = lora.readData((uint8_t *)packet, 63);
     if (state == RADIOLIB_ERR_NONE) {
+      packet[lora.getPacketLength()] = '\0';
       Serial.print("[RX DATA] ");
       Serial.println(packet);
       lora.startReceive();
@@ -1135,10 +1197,11 @@ void loop() {
         uint16_t incomingSeq = 0;
         int cowId = 0;
         float temp = 0.0;
+        int hr = 0;
         char errFlag[16] = "";
-        // Parse CSV: HB,seq,id,temp,err
-        if (sscanf(packet + 3, "%hu,%d,%f,%15[^,\r\n]", &incomingSeq, &cowId,
-                   &temp, errFlag) >= 3) {
+        // Parse CSV: HB,seq,id,temp,hr,err
+        if (sscanf(packet + 3, "%hu,%d,%f,%d,%15[^,\r\n]", &incomingSeq,
+                   &cowId, &temp, &hr, errFlag) >= 4) {
           totalPktsRcvd++;
           if (gatewayPktSeq > 0 && incomingSeq > gatewayPktSeq + 1) {
             totalPktsLost += (incomingSeq - gatewayPktSeq - 1);
@@ -1146,19 +1209,37 @@ void loop() {
           gatewayPktSeq = incomingSeq;
           lastCowId = cowId;
           lastCowTemp = temp;
+          if (hr > 0) lastCowHr = hr;
+
+          NodeData *nd = getNode(cowId);
+          if (nd) {
+            nd->temp = temp; nd->rssi = lora.getRSSI();
+            nd->lastSeen = millis(); nd->pktsRcvd++;
+            if (hr > 0) { nd->hr = hr; nd->hasHr = true; }
+            if (nd->pktSeq > 0 && incomingSeq > nd->pktSeq + 1)
+              nd->pktsLost += (incomingSeq - nd->pktSeq - 1);
+            nd->pktSeq = incomingSeq;
+          }
+
           snprintf(alertStatus, sizeof(alertStatus), "NORMAL");
 
-          if (lastCowTemp >= cfgTempHigh) {
-            snprintf(alertStatus, sizeof(alertStatus), "TEMP HIGH");
-            char buf[48];
-            snprintf(buf, sizeof(buf), "ID:%d T_HI:%.1fC (HB)", cowId, temp);
-            Serial.print("[HB ALERT] ");
-            Serial.println(buf);
-            queueAlert(buf);
-          } else if (lastCowTemp <= cfgTempLow) {
-            snprintf(alertStatus, sizeof(alertStatus), "TEMP LOW");
-            char buf[48];
-            snprintf(buf, sizeof(buf), "ID:%d T_LO:%.1fC (HB)", cowId, temp);
+          // Build combined alert for temp + HR
+          char statusParts[32] = "";
+          if (lastCowTemp >= cfgTempHigh)
+            strncat(statusParts, "T_HI ", sizeof(statusParts) - strlen(statusParts) - 1);
+          else if (lastCowTemp <= cfgTempLow)
+            strncat(statusParts, "T_LO ", sizeof(statusParts) - strlen(statusParts) - 1);
+
+          if (hr > 0 && hr >= cfgHrHigh)
+            strncat(statusParts, "HR_HI", sizeof(statusParts) - strlen(statusParts) - 1);
+          else if (hr > 0 && hr <= cfgHrLow)
+            strncat(statusParts, "HR_LO", sizeof(statusParts) - strlen(statusParts) - 1);
+
+          if (strlen(statusParts) > 0) {
+            snprintf(alertStatus, sizeof(alertStatus), "%s", statusParts);
+            char buf[64];
+            snprintf(buf, sizeof(buf), "ID:%d %s T:%.1f HR:%d (HB)", cowId,
+                     statusParts, temp, hr);
             Serial.print("[HB ALERT] ");
             Serial.println(buf);
             queueAlert(buf);
@@ -1193,6 +1274,16 @@ void loop() {
           lastCowTemp = temp;
           lastCowHr = hr;
 
+          NodeData *nd = getNode(cowId);
+          if (nd) {
+            nd->temp = temp; nd->hr = hr; nd->hasHr = true;
+            nd->rssi = lora.getRSSI(); nd->lastSeen = millis();
+            nd->pktsRcvd++;
+            if (nd->pktSeq > 0 && incomingSeq > nd->pktSeq + 1)
+              nd->pktsLost += (incomingSeq - nd->pktSeq - 1);
+            nd->pktSeq = incomingSeq;
+          }
+
           snprintf(alertStatus, sizeof(alertStatus), "NORMAL");
           if (lastCowTemp >= cfgTempHigh || lastCowTemp <= cfgTempLow ||
               lastCowHr >= cfgHrHigh || lastCowHr <= cfgHrLow) {
@@ -1202,30 +1293,20 @@ void loop() {
               isOledOff = false;
             }
           }
-          char alertReason[32] = "";
-          snprintf(alertReason, sizeof(alertReason), "ID:%d ", lastCowId);
+          // Build combined alert (supports both temp + HR at once)
+          char statusParts[32] = "";
+          if (lastCowTemp >= cfgTempHigh)
+            strncat(statusParts, "T_HI ", sizeof(statusParts) - strlen(statusParts) - 1);
+          else if (lastCowTemp <= cfgTempLow)
+            strncat(statusParts, "T_LO ", sizeof(statusParts) - strlen(statusParts) - 1);
 
-          if (lastCowTemp >= cfgTempHigh) {
-            snprintf(alertStatus, sizeof(alertStatus), "TEMP HIGH");
-            strncat(alertReason, "T_HI ",
-                    sizeof(alertReason) - strlen(alertReason) - 1);
-          } else if (lastCowTemp <= cfgTempLow) {
-            snprintf(alertStatus, sizeof(alertStatus), "TEMP LOW");
-            strncat(alertReason, "T_LO ",
-                    sizeof(alertReason) - strlen(alertReason) - 1);
-          }
+          if (lastCowHr >= cfgHrHigh)
+            strncat(statusParts, "HR_HI", sizeof(statusParts) - strlen(statusParts) - 1);
+          else if (lastCowHr <= cfgHrLow)
+            strncat(statusParts, "HR_LO", sizeof(statusParts) - strlen(statusParts) - 1);
 
-          if (lastCowHr >= cfgHrHigh) {
-            snprintf(alertStatus, sizeof(alertStatus), "HR HIGH");
-            strncat(alertReason, "HR_HI",
-                    sizeof(alertReason) - strlen(alertReason) - 1);
-          } else if (lastCowHr <= cfgHrLow) {
-            snprintf(alertStatus, sizeof(alertStatus), "HR LOW");
-            strncat(alertReason, "HR_LO",
-                    sizeof(alertReason) - strlen(alertReason) - 1);
-          }
-
-          if (strcmp(alertStatus, "NORMAL") != 0) {
+          if (strlen(statusParts) > 0) {
+            snprintf(alertStatus, sizeof(alertStatus), "%s", statusParts);
             char valMsg[64];
             snprintf(valMsg, sizeof(valMsg), "ID:%d %s T:%.1f HR:%d", lastCowId,
                      alertStatus, lastCowTemp, lastCowHr);
@@ -1318,6 +1399,7 @@ void queueAlert(const char *reason) {
       beep(3, 100);
       lastSmsTime = millis();
       strncpy(gsmSmsBuffer, reason, sizeof(gsmSmsBuffer) - 1);
+      gsmSmsBuffer[sizeof(gsmSmsBuffer) - 1] = '\0';
       gsmSmsPending = true;
     } else if (gsmSmsPending) {
       Serial.println("[ALERT] SMS already pending...");

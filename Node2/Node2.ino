@@ -10,8 +10,8 @@
 // ==========================================
 // CONFIGURATION & PIN DEFINITIONS
 // ==========================================
-#define COW_ID "1"
-#define COW_ID_NUM 1
+#define COW_ID "2"
+#define COW_ID_NUM 2
 
 // LoRa SX1278 (SPI)
 #define LORA_SCK 18

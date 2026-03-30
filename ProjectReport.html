@@ -1,0 +1,1445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VetNode: IoT-Based Cattle Health Monitoring System &mdash; Project Report</title>
+    <style>
+        :root {
+            --primary: #1a3c5e;
+            --accent: #2e7d32;
+            --border: #cfd8dc;
+            --bg-light: #f5f7fa;
+            --text: #263238;
+            --text-muted: #546e7a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            line-height: 1.8;
+            color: var(--text);
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 30px;
+            background: #fff;
+        }
+
+        /* ── Cover Page ── */
+        .cover-page {
+            text-align: center;
+            page-break-after: always;
+            padding: 60px 0 40px;
+            border-bottom: 3px double var(--primary);
+            margin-bottom: 50px;
+        }
+
+        .cover-page .institution {
+            font-size: 1.1em;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-muted);
+            margin-bottom: 60px;
+        }
+
+        .cover-page h1 {
+            font-size: 2.2em;
+            color: var(--primary);
+            margin-bottom: 10px;
+            line-height: 1.3;
+        }
+
+        .cover-page .subtitle {
+            font-size: 1.15em;
+            color: var(--text-muted);
+            font-style: italic;
+            margin-bottom: 50px;
+        }
+
+        .cover-page .meta {
+            font-size: 1em;
+            line-height: 2;
+            color: var(--text);
+        }
+
+        .cover-page .meta strong {
+            color: var(--primary);
+        }
+
+        /* ── Table of Contents ── */
+        .toc {
+            page-break-after: always;
+            margin-bottom: 50px;
+            padding-bottom: 40px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .toc h2 {
+            font-size: 1.6em;
+            color: var(--primary);
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 8px;
+        }
+
+        .toc ol {
+            list-style: none;
+            counter-reset: toc-counter;
+        }
+
+        .toc > ol > li {
+            counter-increment: toc-counter;
+            margin-bottom: 6px;
+        }
+
+        .toc > ol > li::before {
+            content: counter(toc-counter) ". ";
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .toc > ol > li > a {
+            text-decoration: none;
+            color: var(--text);
+            font-size: 1.05em;
+        }
+
+        .toc > ol > li > a:hover {
+            color: var(--accent);
+            text-decoration: underline;
+        }
+
+        .toc ol ol {
+            margin-left: 28px;
+            margin-top: 4px;
+            list-style: none;
+            counter-reset: toc-sub;
+        }
+
+        .toc ol ol li {
+            counter-increment: toc-sub;
+            margin-bottom: 3px;
+        }
+
+        .toc ol ol li::before {
+            content: counter(toc-counter) "." counter(toc-sub) " ";
+            color: var(--text-muted);
+            font-size: 0.95em;
+        }
+
+        .toc ol ol li a {
+            text-decoration: none;
+            color: var(--text-muted);
+            font-size: 0.95em;
+        }
+
+        .toc ol ol li a:hover {
+            color: var(--accent);
+        }
+
+        /* ── Sections ── */
+        .section {
+            margin-bottom: 45px;
+        }
+
+        h2.section-title {
+            font-size: 1.5em;
+            color: var(--primary);
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 6px;
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            font-size: 1.2em;
+            color: var(--primary);
+            margin: 25px 0 12px;
+        }
+
+        h4 {
+            font-size: 1.05em;
+            color: var(--text);
+            margin: 18px 0 8px;
+            font-style: italic;
+        }
+
+        p {
+            margin-bottom: 14px;
+            text-align: justify;
+        }
+
+        ul, ol {
+            margin: 10px 0 16px 28px;
+        }
+
+        li {
+            margin-bottom: 6px;
+        }
+
+        /* ── Tables ── */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0 24px;
+            font-size: 0.92em;
+        }
+
+        thead {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        th {
+            padding: 10px 14px;
+            text-align: left;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+
+        td {
+            padding: 9px 14px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        tbody tr:nth-child(even) {
+            background: var(--bg-light);
+        }
+
+        tbody tr:hover {
+            background: #e8edf2;
+        }
+
+        /* ── Code Blocks ── */
+        code {
+            font-family: 'Courier New', monospace;
+            background: var(--bg-light);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+
+        pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 18px 22px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 14px 0 20px;
+            font-size: 0.88em;
+            line-height: 1.6;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+        }
+
+        /* ── Figures & Diagrams ── */
+        .diagram-box {
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 24px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .diagram-box pre {
+            background: #fff;
+            color: var(--text);
+            text-align: left;
+            display: inline-block;
+            padding: 20px 30px;
+            border: 1px solid var(--border);
+            font-size: 0.82em;
+            line-height: 1.5;
+        }
+
+        .diagram-box .caption {
+            margin-top: 12px;
+            font-style: italic;
+            color: var(--text-muted);
+            font-size: 0.92em;
+        }
+
+        /* ── Highlights / Notes ── */
+        .note {
+            background: #e8f5e9;
+            border-left: 4px solid var(--accent);
+            padding: 14px 18px;
+            margin: 16px 0;
+            border-radius: 0 6px 6px 0;
+            font-size: 0.95em;
+        }
+
+        .note strong {
+            color: var(--accent);
+        }
+
+        /* ── Print Styles ── */
+        @media print {
+            body {
+                padding: 20px;
+                font-size: 11pt;
+            }
+
+            .cover-page {
+                page-break-after: always;
+            }
+
+            .toc {
+                page-break-after: always;
+            }
+
+            .section {
+                page-break-inside: avoid;
+            }
+
+            h2.section-title {
+                page-break-after: avoid;
+            }
+
+            pre {
+                white-space: pre-wrap;
+                word-wrap: break-word;
+            }
+        }
+        /* ── Mermaid Diagrams ── */
+        .mermaid-container {
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 24px 16px;
+            margin: 20px 0 28px;
+            overflow-x: auto;
+        }
+
+        .mermaid-container .mermaid {
+            display: flex;
+            justify-content: center;
+        }
+
+        .mermaid-container .mermaid svg {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .fig-caption {
+            text-align: center;
+            font-style: italic;
+            color: var(--text-muted);
+            font-size: 0.92em;
+            margin-top: 10px;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'base',
+            themeVariables: {
+                primaryColor: '#e3f2fd',
+                primaryTextColor: '#1a3c5e',
+                primaryBorderColor: '#1565c0',
+                lineColor: '#546e7a',
+                secondaryColor: '#fce4ec',
+                tertiaryColor: '#f5f7fa',
+                fontFamily: 'Georgia, Times New Roman, serif',
+                fontSize: '13px'
+            },
+            flowchart: { curve: 'basis', padding: 15 },
+            stateDiagram: { padding: 15 },
+            gantt: { fontSize: 12 }
+        });
+    </script>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     COVER PAGE
+     ════════════════════════════════════════════════════════════════════ -->
+<div class="cover-page">
+    <div class="institution">
+        Department of Electronics &amp; Telecommunication Engineering<br>
+        Final Year Engineering Project Report
+    </div>
+
+    <h1>VetNode: IoT-Based Cattle Health<br>Monitoring System</h1>
+    <div class="subtitle">
+        An ESP32-based Wireless Sensor Network using LoRa and GSM<br>
+        for Real-Time Livestock Vital Sign Monitoring and Alert Generation
+    </div>
+
+    <div class="meta">
+        <strong>Academic Year:</strong> 2025&ndash;2026<br>
+        <strong>Submission Date:</strong> March 2026<br>
+        <strong>Platform:</strong> ESP32-WROOM-32 / Arduino Framework<br>
+        <strong>Version:</strong> v1.3 (Production Release)
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     TABLE OF CONTENTS
+     ════════════════════════════════════════════════════════════════════ -->
+<div class="toc">
+    <h2>Table of Contents</h2>
+    <ol>
+        <li><a href="#introduction">Introduction</a>
+            <ol>
+                <li><a href="#overview">Project Overview</a></li>
+                <li><a href="#problem">Problem Statement</a></li>
+                <li><a href="#objectives">Objectives</a></li>
+            </ol>
+        </li>
+        <li><a href="#system-overview">System Overview</a>
+            <ol>
+                <li><a href="#solution">High-Level Description of the Solution</a></li>
+                <li><a href="#features">Key Features and Functionality</a></li>
+            </ol>
+        </li>
+        <li><a href="#architecture">Architecture Design</a>
+            <ol>
+                <li><a href="#arch-explain">System Architecture</a></li>
+                <li><a href="#data-flow">System Architecture Diagram</a></li>
+                <li><a href="#block-diagram">Data Flow Diagram</a></li>
+            </ol>
+        </li>
+        <li><a href="#hardware">Hardware Components</a>
+            <ol>
+                <li><a href="#hw-list">Component List</a></li>
+                <li><a href="#hw-desc">Component Descriptions</a></li>
+                <li><a href="#pin-map">Pin Mapping</a></li>
+            </ol>
+        </li>
+        <li><a href="#software">Software &amp; Code Flow</a>
+            <ol>
+                <li><a href="#sw-tech">Technologies and Libraries</a></li>
+                <li><a href="#sw-node">Node Firmware Logic</a></li>
+                <li><a href="#sw-gateway">Gateway Firmware Logic</a></li>
+                <li><a href="#sw-protocol">Communication Protocol</a></li>
+            </ol>
+        </li>
+        <li><a href="#implementation">Implementation Details</a>
+            <ol>
+                <li><a href="#impl-steps">Step-by-Step Working</a></li>
+                <li><a href="#impl-integration">Hardware&ndash;Software Integration</a></li>
+                <li><a href="#impl-config">Configuration and Persistence</a></li>
+            </ol>
+        </li>
+        <li><a href="#results">Results &amp; Observations</a>
+            <ol>
+                <li><a href="#res-output">System Output</a></li>
+                <li><a href="#res-perf">Performance Metrics</a></li>
+                <li><a href="#res-threshold">Alert Threshold Behavior</a></li>
+            </ol>
+        </li>
+        <li><a href="#conclusion">Conclusion</a>
+            <ol>
+                <li><a href="#summary">Project Summary</a></li>
+                <li><a href="#learnings">Key Learnings</a></li>
+            </ol>
+        </li>
+        <li><a href="#future">Future Scope</a></li>
+        <li><a href="#references">References</a></li>
+    </ol>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     1. INTRODUCTION
+     ════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="introduction">
+    <h2 class="section-title">1. Introduction</h2>
+
+    <h3 id="overview">1.1 Project Overview</h3>
+    <p>
+        <strong>VetNode</strong> is an Internet of Things (IoT) based cattle health monitoring system designed to provide real-time, continuous surveillance of livestock vital signs. The system employs wearable sensor nodes attached to individual cattle to measure body temperature and heart rate, transmitting the collected data wirelessly to a centralized gateway unit using Long Range (LoRa) radio communication at 433&nbsp;MHz.
+    </p>
+    <p>
+        The central gateway aggregates incoming telemetry, evaluates the readings against configurable health thresholds, and dispatches descriptive SMS alerts to the farmer's mobile phone via a GSM modem when anomalous conditions are detected. A built-in OLED dashboard provides on-site real-time visualization, while a menu-driven interface allows field configuration without requiring firmware re-flashing.
+    </p>
+    <p>
+        The project targets small to medium-scale dairy and cattle farms where veterinary resources are limited and early detection of health anomalies&mdash;such as fever, hypothermia, tachycardia, or bradycardia&mdash;can significantly reduce livestock mortality and improve farm productivity.
+    </p>
+
+    <h3 id="problem">1.2 Problem Statement</h3>
+    <p>
+        Livestock health monitoring in rural and semi-urban farming operations remains predominantly manual, relying on periodic visual inspections and intermittent veterinary visits. This approach presents several critical limitations:
+    </p>
+    <ul>
+        <li><strong>Delayed Detection:</strong> Symptoms of common bovine diseases such as mastitis, bovine respiratory disease (BRD), and tick-borne fever often manifest through subtle changes in body temperature and heart rate hours before visible clinical signs appear. Manual observation frequently misses these early indicators.</li>
+        <li><strong>Scalability Constraints:</strong> As herd sizes grow, the labor and time required for individual animal assessment become unsustainable, leading to monitoring gaps and increased risk of undetected illness spreading within the herd.</li>
+        <li><strong>Limited Connectivity:</strong> Rural farming areas often lack reliable internet infrastructure, rendering cloud-dependent IoT solutions impractical. A communication method that operates independently of Wi-Fi or cellular data networks is essential.</li>
+        <li><strong>Cost Barriers:</strong> Commercial livestock monitoring systems are prohibitively expensive for smallholder farmers, creating an accessibility gap in precision livestock farming technologies.</li>
+        <li><strong>Absence of Automated Alerting:</strong> Without continuous monitoring and automated notification mechanisms, abnormal health events during nighttime hours or when farm personnel are off-site go undetected until they escalate into emergencies.</li>
+    </ul>
+
+    <h3 id="objectives">1.3 Objectives</h3>
+    <p>The primary objectives of the VetNode project are as follows:</p>
+    <ol>
+        <li>Design and implement a wearable, low-power sensor node capable of continuously measuring bovine body temperature and heart rate with clinically acceptable accuracy.</li>
+        <li>Establish a reliable long-range wireless communication link between sensor nodes and a central gateway using LoRa modulation at 433&nbsp;MHz, achieving effective coverage of 100&ndash;200 meters in typical farm environments.</li>
+        <li>Develop a centralized gateway unit that aggregates multi-node telemetry, evaluates health thresholds, and dispatches descriptive SMS alerts via a GSM modem to the farmer's mobile phone.</li>
+        <li>Implement a non-blocking, state-machine-driven firmware architecture that ensures responsive user interaction and uninterrupted data acquisition.</li>
+        <li>Provide an on-device user interface with a real-time OLED dashboard and menu-driven configuration system, enabling threshold adjustment and system diagnostics without programming tools.</li>
+        <li>Support multi-node operation with Time Division Multiple Access (TDMA) scheduling to prevent transmission collisions across simultaneously monitored cattle.</li>
+        <li>Achieve a cost-effective, open-source solution accessible to smallholder farmers using commercially available, off-the-shelf components.</li>
+    </ol>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     2. SYSTEM OVERVIEW
+     ════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="system-overview">
+    <h2 class="section-title">2. System Overview</h2>
+
+    <h3 id="solution">2.1 High-Level Description of the Solution</h3>
+    <p>
+        The VetNode system follows a star-topology wireless sensor network architecture comprising two primary subsystems:
+    </p>
+    <ol>
+        <li><strong>Sensor Nodes (Wearable Units):</strong> Each node is an ESP32-based embedded device equipped with a MAX30102 pulse oximetry sensor for heart rate detection, a DS18B20 digital temperature sensor for body temperature measurement, and a DS3231 real-time clock for timestamping. The node continuously acquires sensor data and transmits structured telemetry packets via an SX1278 LoRa transceiver at 2-second intervals.</li>
+        <li><strong>Central Gateway (Base Station):</strong> The gateway is an ESP32-based receiver that monitors the LoRa channel for incoming node transmissions. It parses telemetry packets, updates per-node health records, evaluates readings against configurable thresholds, and triggers SMS alerts through a SIM800L GSM modem when anomalies are detected. A 128&times;64 SH1106 OLED display provides real-time dashboard visualization, and a two-button interface enables menu navigation and configuration.</li>
+    </ol>
+    <p>
+        The system operates entirely on the unlicensed 433&nbsp;MHz ISM band for node-to-gateway communication and the 2G GSM network for alert delivery, making it independent of local internet infrastructure.
+    </p>
+
+    <h3 id="features">2.2 Key Features and Functionality</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Feature</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Non-Blocking Architecture</td>
+                <td>All GSM, LoRa, and sensor operations are driven by finite state machines, preventing any single operation from blocking the main loop and ensuring responsive UI and continuous data acquisition.</td>
+            </tr>
+            <tr>
+                <td>Robust LoRa Communication</td>
+                <td>Synchronized LoRa parameters (433&nbsp;MHz, BW 125&nbsp;kHz, SF7, CR 4/5) with automatic link recovery and per-packet RSSI monitoring.</td>
+            </tr>
+            <tr>
+                <td>TDMA Anti-Collision</td>
+                <td>Time-slotted transmission scheduling (500&nbsp;ms per node) prevents packet collisions in multi-node deployments without requiring a coordination protocol.</td>
+            </tr>
+            <tr>
+                <td>Descriptive SMS Alerts</td>
+                <td>Alert messages include the cow ID, violation type (temperature high/low, heart rate high/low), and live vital sign values, enabling immediate remote diagnosis.</td>
+            </tr>
+            <tr>
+                <td>Persistent Configuration</td>
+                <td>All configurable parameters (thresholds, phone number, alert intervals) are stored in ESP32 Non-Volatile Storage (NVS) and persist across power cycles.</td>
+            </tr>
+            <tr>
+                <td>Real-Time OLED Dashboard</td>
+                <td>Live display of cow ID, temperature, heart rate, LoRa signal bars, GSM signal strength, and "Last Seen" ticker with automatic refresh.</td>
+            </tr>
+            <tr>
+                <td>Power Management</td>
+                <td>Configurable OLED auto-off timeout and gateway sleep timer to conserve battery in field deployments.</td>
+            </tr>
+            <tr>
+                <td>Graceful Degradation</td>
+                <td>System continues operation with partial sensor failures, reporting error flags in telemetry packets rather than halting.</td>
+            </tr>
+            <tr>
+                <td>Heart Rate Outlier Rejection</td>
+                <td>4-beat rolling average with &plusmn;30% deviation filtering suppresses spurious readings from sensor noise or motion artifacts.</td>
+            </tr>
+            <tr>
+                <td>Remote Node Control</td>
+                <td>Gateway can send commands to nodes (LED control, ping) for field diagnostics and hardware verification.</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     3. ARCHITECTURE DESIGN
+     ════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="architecture">
+    <h2 class="section-title">3. Architecture Design</h2>
+
+    <h3 id="arch-explain">3.1 System Architecture</h3>
+    <p>
+        The VetNode system adopts a <strong>two-tier, star-topology wireless sensor network</strong> architecture. At the edge layer, multiple wearable sensor nodes operate as independent data acquisition units, each responsible for a single animal. At the aggregation layer, a centralized gateway serves as the network coordinator, data processor, and communication bridge to the GSM cellular network.
+    </p>
+    <p>
+        Within each tier, the firmware follows a <strong>cooperative multitasking</strong> model built on non-blocking finite state machines. This architectural decision ensures that no single operation (sensor read, radio transmission, serial communication, or user interface update) monopolizes the processor, thereby maintaining system responsiveness and preventing watchdog timer resets.
+    </p>
+    <p>
+        The communication layer employs a <strong>unidirectional primary / bidirectional secondary</strong> pattern: nodes primarily transmit heartbeat and data packets to the gateway, while the gateway may optionally send command packets (LED control, pings) to specific nodes. This asymmetric design minimizes node power consumption while preserving remote diagnostic capabilities.
+    </p>
+
+    <h3 id="data-flow">3.2 System Architecture Diagram</h3>
+    <div class="mermaid-container">
+        <div class="mermaid">
+graph LR
+    subgraph NODE["&nbsp;&nbsp;SENSOR NODE &lpar;Per Cow&rpar;&nbsp;&nbsp;"]
+        direction TB
+        DS18["DS18B20<br/>Temperature"]
+        MAX["MAX30102<br/>Heart Rate"]
+        RTC["DS3231<br/>RTC"]
+        ESP_N["ESP32<br/>Node MCU"]
+        LORA_N["SX1278<br/>LoRa TX"]
+        LED_G["Green LED<br/>Status"]
+        LED_R["Red LED<br/>Pulse/Error"]
+        DS18 -->|OneWire| ESP_N
+        MAX -->|I2C| ESP_N
+        RTC -->|I2C| ESP_N
+        ESP_N -->|SPI| LORA_N
+        ESP_N --> LED_G
+        ESP_N --> LED_R
+    end
+    subgraph GW["&nbsp;&nbsp;CENTRAL GATEWAY&nbsp;&nbsp;"]
+        direction TB
+        LORA_G["SX1278<br/>LoRa RX"]
+        ESP_G["ESP32<br/>Gateway MCU"]
+        OLED["SH1106<br/>OLED Display"]
+        GSM["SIM800L<br/>GSM Modem"]
+        BTN["Buttons<br/>Menu + Select"]
+        BUZ["Buzzer<br/>Audio Alert"]
+        LORA_G -->|SPI| ESP_G
+        ESP_G -->|I2C| OLED
+        ESP_G -->|UART| GSM
+        BTN --> ESP_G
+        ESP_G --> BUZ
+    end
+    LORA_N ==>|"LoRa 433MHz<br/>HB/DATA Packets"| LORA_G
+    LORA_G -.->|"CMD/PING<br/>Packets"| LORA_N
+    GSM ==>|"SMS Alert<br/>2G Network"| PHONE["Farmer's<br/>Mobile Phone"]
+        </div>
+        <div class="fig-caption">Figure 1: System architecture diagram showing Node and Gateway subsystems with communication links</div>
+    </div>
+
+    <h3 id="block-diagram">3.3 Data Flow Diagram</h3>
+    <div class="mermaid-container">
+        <div class="mermaid">
+flowchart TD
+    A["Sensors<br/>DS18B20 + MAX30102 + DS3231"] -->|"Raw Readings"| B["ESP32 Node<br/>Data Processing"]
+    B -->|"Packet Assembly<br/>HB,seq,id,temp,hr,err"| C["SX1278 LoRa TX<br/>433 MHz"]
+    C -->|"Wireless Transmission<br/>TDMA Scheduled"| D["SX1278 LoRa RX<br/>Gateway"]
+    D -->|"Raw Packet String"| E["ESP32 Gateway<br/>Packet Parser"]
+    E -->|"Parsed Data"| F["NodeData Structure<br/>Update per Cow ID"]
+    F --> G{"Threshold<br/>Evaluation"}
+    G -->|"Normal"| H["OLED Dashboard<br/>Real-Time Display"]
+    G -->|"Breach Detected"| I["queueAlert<br/>Build SMS String"]
+    I --> J["Buzzer<br/>3x 100ms Beeps"]
+    I --> K["SIM800L GSM<br/>State Machine"]
+    K --> L["SMS Delivered<br/>to Farmer"]
+    I --> H
+    E -->|"Sequence Tracking"| M["Packet Loss<br/>Detection"]
+    M --> H
+
+    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style C fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style D fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style G fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style I fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style L fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style H fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+        </div>
+        <div class="fig-caption">Figure 2: End-to-end data flow from sensor acquisition to alert delivery and dashboard display</div>
+    </div>
+
+    <h3>3.4 TDMA Transmission Scheduling</h3>
+    <div class="mermaid-container">
+        <div class="mermaid">
+gantt
+    title TDMA Slot Allocation per 2-Second Cycle
+    dateFormat X
+    axisFormat %Lms
+    section Node 1 COW_ID=1
+    TX Slot 0ms offset     :active, n1, 0, 100
+    Guard Interval           :done, g1, 100, 500
+    section Node 2 COW_ID=2
+    TX Slot 500ms offset   :active, n2, 500, 600
+    Guard Interval           :done, g2, 600, 1000
+    section Node 3 COW_ID=3
+    TX Slot 1000ms offset  :active, n3, 1000, 1100
+    Guard Interval           :done, g3, 1100, 1500
+    section Node 4 COW_ID=4
+    TX Slot 1500ms offset  :active, n4, 1500, 1600
+    Guard Interval           :done, g4, 1600, 2000
+        </div>
+        <div class="fig-caption">Figure 3: TDMA time-slot allocation preventing multi-node packet collisions within a 2-second transmission cycle</div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     4. HARDWARE COMPONENTS
+     ════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="hardware">
+    <h2 class="section-title">4. Hardware Components</h2>
+
+    <h3 id="hw-list">4.1 Component List</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Component</th>
+                <th>Quantity</th>
+                <th>Used In</th>
+                <th>Interface</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>ESP32-WROOM-32 Development Board</td><td>2+ (1 per node + 1 gateway)</td><td>Node &amp; Gateway</td><td>&mdash;</td></tr>
+            <tr><td>SX1278 LoRa Transceiver Module (433&nbsp;MHz)</td><td>2+</td><td>Node &amp; Gateway</td><td>SPI</td></tr>
+            <tr><td>MAX30102 Pulse Oximetry &amp; Heart Rate Sensor</td><td>1 per node</td><td>Node</td><td>I2C (0x57)</td></tr>
+            <tr><td>DS18B20 Digital Temperature Sensor</td><td>1 per node</td><td>Node</td><td>OneWire</td></tr>
+            <tr><td>DS3231 Real-Time Clock Module</td><td>1 per node</td><td>Node</td><td>I2C (0x68)</td></tr>
+            <tr><td>SIM800L GSM/GPRS Module</td><td>1</td><td>Gateway</td><td>UART</td></tr>
+            <tr><td>SH1106 128&times;64 OLED Display</td><td>1</td><td>Gateway</td><td>I2C (0x3C)</td></tr>
+            <tr><td>Push Buttons (Tactile)</td><td>2</td><td>Gateway</td><td>GPIO (Pullup)</td></tr>
+            <tr><td>Active Buzzer</td><td>1</td><td>Gateway</td><td>GPIO</td></tr>
+            <tr><td>LEDs (Green &amp; Red)</td><td>2 per node</td><td>Node</td><td>GPIO</td></tr>
+            <tr><td>4.7&nbsp;k&Omega; Resistor (DS18B20 Pull-up)</td><td>1 per node</td><td>Node</td><td>&mdash;</td></tr>
+            <tr><td>2A 5V Power Supply (SIM800L)</td><td>1</td><td>Gateway</td><td>&mdash;</td></tr>
+        </tbody>
+    </table>
+
+    <h3 id="hw-desc">4.2 Component Descriptions and Roles</h3>
+
+    <h4>ESP32-WROOM-32 (Microcontroller)</h4>
+    <p>
+        The ESP32-WROOM-32 serves as the central processing unit for both the sensor node and gateway. Featuring a 32-bit Xtensa LX6 dual-core processor clocked at 240&nbsp;MHz, 520&nbsp;KB of SRAM, and 4&nbsp;MB of flash memory, it provides ample computational resources for concurrent sensor management, radio communication, and user interface rendering. Its native support for SPI, I2C, and UART peripherals makes it an ideal platform for interfacing with the diverse set of sensors and communication modules required by this project.
+    </p>
+
+    <h4>SX1278 LoRa Transceiver (Communication)</h4>
+    <p>
+        The Semtech SX1278 is a sub-GHz LoRa spread-spectrum transceiver operating in the 433&nbsp;MHz ISM band. It provides long-range wireless communication with high sensitivity (&minus;148&nbsp;dBm) and configurable link parameters. In this project, it is configured with a bandwidth of 125&nbsp;kHz, spreading factor 7, coding rate 4/5, and transmit power of 10&nbsp;dBm, achieving an effective range of 100&ndash;200 meters in line-of-sight farm conditions. The module interfaces with the ESP32 via the SPI bus using the RadioLib library.
+    </p>
+
+    <h4>MAX30102 Pulse Oximetry Sensor (Heart Rate)</h4>
+    <p>
+        The MAX30102 is an integrated pulse oximetry and heart rate sensor module with dual-wavelength (red and infrared) LEDs and a photodetector. In this application, the infrared channel is used for heart rate detection through photoplethysmography (PPG). The sensor is configured for a sample rate of 400&nbsp;Hz with an 18-bit ADC resolution (411&nbsp;&mu;s pulse width), providing high-fidelity pulse waveform data. A custom beat detection algorithm processes the raw IR values to extract beats per minute (BPM) with a rolling 4-beat average.
+    </p>
+
+    <h4>DS18B20 Digital Temperature Sensor</h4>
+    <p>
+        The DS18B20 is a digital thermometer that communicates over a single-wire (OneWire) interface, providing temperature measurements with a factory-calibrated accuracy of &plusmn;0.5&deg;C over the range of &minus;10&deg;C to +85&deg;C. Its digital output eliminates the need for analog-to-digital conversion and associated calibration errors, making it well-suited for body temperature monitoring in the 37&ndash;42&deg;C range relevant to bovine health.
+    </p>
+
+    <h4>DS3231 Real-Time Clock (Timekeeping)</h4>
+    <p>
+        The DS3231 is a high-precision I2C real-time clock with an integrated temperature-compensated crystal oscillator (TCXO), providing timekeeping accuracy of &plusmn;2&nbsp;ppm (&plusmn;1 minute per year). It serves as the timestamp source for sensor readings on the node side, enabling accurate temporal correlation of health data.
+    </p>
+
+    <h4>SIM800L GSM Module (Cellular Communication)</h4>
+    <p>
+        The SIM800L is a quad-band (850/900/1800/1900&nbsp;MHz) GSM/GPRS module used exclusively on the gateway for dispatching SMS alerts. It interfaces with the ESP32 via UART (Serial2) at 9600&nbsp;baud and is managed by a non-blocking state machine that handles AT command sequences for SMS transmission. The module requires a dedicated 5V power supply capable of delivering 2A peak current during radio bursts.
+    </p>
+
+    <h4>SH1106 128&times;64 OLED Display (User Interface)</h4>
+    <p>
+        The SH1106 OLED display provides a monochrome, high-contrast visual interface on the gateway. It renders the real-time dashboard showing cow identification, vital signs, LoRa signal quality, GSM status, and alert notifications. The display is driven via I2C using the Adafruit SH110X and GFX libraries, with support for automatic power-off after a configurable inactivity timeout.
+    </p>
+
+    <h3 id="pin-map">4.3 Pin Mapping</h3>
+
+    <h4>Node Pin Configuration</h4>
+    <table>
+        <thead>
+            <tr><th>Function</th><th>GPIO Pin</th><th>Direction</th><th>Protocol</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>LoRa SCK</td><td>18</td><td>Output</td><td>SPI Clock</td></tr>
+            <tr><td>LoRa MISO</td><td>19</td><td>Input</td><td>SPI Data In</td></tr>
+            <tr><td>LoRa MOSI</td><td>23</td><td>Output</td><td>SPI Data Out</td></tr>
+            <tr><td>LoRa CS (SS)</td><td>5</td><td>Output</td><td>SPI Chip Select</td></tr>
+            <tr><td>LoRa RST</td><td>14</td><td>Output</td><td>Module Reset</td></tr>
+            <tr><td>LoRa DIO0</td><td>2</td><td>Input</td><td>TX/RX Interrupt</td></tr>
+            <tr><td>I2C SDA (MAX30102, DS3231)</td><td>21</td><td>Bidirectional</td><td>I2C Data</td></tr>
+            <tr><td>I2C SCL (MAX30102, DS3231)</td><td>22</td><td>Bidirectional</td><td>I2C Clock</td></tr>
+            <tr><td>DS18B20 Data</td><td>15</td><td>Bidirectional</td><td>OneWire</td></tr>
+            <tr><td>LED Green (Status)</td><td>32</td><td>Output</td><td>Digital</td></tr>
+            <tr><td>LED Red (Error/Pulse)</td><td>33</td><td>Output</td><td>Digital</td></tr>
+        </tbody>
+    </table>
+
+    <h4>Gateway Pin Configuration</h4>
+    <table>
+        <thead>
+            <tr><th>Function</th><th>GPIO Pin</th><th>Direction</th><th>Protocol</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>LoRa SCK</td><td>18</td><td>Output</td><td>SPI Clock</td></tr>
+            <tr><td>LoRa MISO</td><td>19</td><td>Input</td><td>SPI Data In</td></tr>
+            <tr><td>LoRa MOSI</td><td>23</td><td>Output</td><td>SPI Data Out</td></tr>
+            <tr><td>LoRa CS (SS)</td><td>5</td><td>Output</td><td>SPI Chip Select</td></tr>
+            <tr><td>LoRa RST</td><td>14</td><td>Output</td><td>Module Reset</td></tr>
+            <tr><td>LoRa DIO0</td><td>2</td><td>Input</td><td>TX/RX Interrupt</td></tr>
+            <tr><td>OLED SDA</td><td>21</td><td>Bidirectional</td><td>I2C Data</td></tr>
+            <tr><td>OLED SCL</td><td>22</td><td>Bidirectional</td><td>I2C Clock</td></tr>
+            <tr><td>GSM TX</td><td>17</td><td>Output</td><td>UART2 TX</td></tr>
+            <tr><td>GSM RX</td><td>16</td><td>Input</td><td>UART2 RX</td></tr>
+            <tr><td>Menu Button</td><td>25</td><td>Input (Pullup)</td><td>Digital</td></tr>
+            <tr><td>Select Button</td><td>26</td><td>Input (Pullup)</td><td>Digital</td></tr>
+            <tr><td>Buzzer</td><td>27</td><td>Output</td><td>Digital</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     5. SOFTWARE & CODE FLOW
+     ════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="software">
+    <h2 class="section-title">5. Software &amp; Code Flow</h2>
+
+    <h3 id="sw-tech">5.1 Technologies and Libraries</h3>
+    <table>
+        <thead>
+            <tr><th>Library</th><th>Version</th><th>Purpose</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>Arduino Framework (ESP32 Core)</td><td>Latest</td><td>Base development framework for ESP32 microcontroller</td></tr>
+            <tr><td>RadioLib</td><td>v7.6.0+</td><td>LoRa/SX1278 packet radio communication</td></tr>
+            <tr><td>Adafruit SH110X</td><td>Latest</td><td>SH1106 OLED display driver</td></tr>
+            <tr><td>Adafruit GFX</td><td>Latest</td><td>Graphics primitives library for OLED rendering</td></tr>
+            <tr><td>DallasTemperature</td><td>Latest</td><td>DS18B20 high-level temperature sensor interface</td></tr>
+            <tr><td>OneWire</td><td>Latest</td><td>OneWire protocol implementation for DS18B20</td></tr>
+            <tr><td>RTClib</td><td>Latest</td><td>DS3231 real-time clock driver</td></tr>
+            <tr><td>MAX30105 (SparkFun)</td><td>Latest</td><td>MAX30102 heart rate and SpO2 sensor driver</td></tr>
+            <tr><td>Preferences (Built-in)</td><td>ESP32 Core</td><td>Non-volatile storage (NVS) for persistent configuration</td></tr>
+        </tbody>
+    </table>
+
+    <h3 id="sw-node">5.2 Node Firmware Logic</h3>
+    <p>
+        The sensor node firmware (<code>Node.ino</code>, approximately 461 lines) implements a cooperative multitasking loop that manages sensor acquisition, LoRa transmission, command reception, and LED diagnostics. The key functional components are:
+    </p>
+
+    <h4>Sensor Initialization and Recovery</h4>
+    <p>
+        The <code>attemptSensorInit()</code> function initializes the MAX30102 pulse sensor with precisely tuned parameters: LED brightness of 0x1F, sample averaging of 4, dual-wavelength mode (Red + IR), sample rate of 400&nbsp;Hz, and pulse width of 411&nbsp;&mu;s for 18-bit ADC resolution. If any I2C sensor (MAX30102 or DS3231) fails to initialize or becomes disconnected during operation, the system automatically retries initialization every 10 seconds while continuing to transmit available data with error flags.
+    </p>
+
+    <h4>Heart Rate Detection Algorithm</h4>
+    <p>
+        The <code>processHeartRate()</code> function implements a non-blocking, real-time beat detection algorithm:
+    </p>
+    <ol>
+        <li><strong>Finger Detection:</strong> The infrared (IR) reflectance value is compared against a threshold of 50,000 counts. Values below this threshold indicate no contact with the sensor surface.</li>
+        <li><strong>Beat Detection:</strong> A derivative-based peak detection identifies cardiac beats from the IR waveform.</li>
+        <li><strong>Interval Validation:</strong> Only beat intervals between 300&nbsp;ms (200&nbsp;BPM cap) and 2000&nbsp;ms (30&nbsp;BPM floor) are accepted.</li>
+        <li><strong>Warm-up Phase:</strong> The first 4 detected beats establish a baseline average before reporting.</li>
+        <li><strong>Outlier Rejection:</strong> Any beat interval deviating more than &plusmn;30% from the rolling average is discarded.</li>
+        <li><strong>Rolling Average:</strong> A 4-beat FIFO circular buffer computes a smoothed BPM value.</li>
+        <li><strong>Staleness Detection:</strong> If no beats are detected for 30 seconds, the heart rate reading is cleared to zero.</li>
+    </ol>
+    <div class="mermaid-container">
+        <div class="mermaid">
+flowchart TD
+    A(["processHeartRate"]) --> B["Read MAX30102 IR Sample"]
+    B --> C{"IR Value<br/>&gt; 50000?"}
+    C -->|No| D["No Finger Detected<br/>Clear HR"]
+    C -->|Yes| E{"Beat Peak<br/>Detected?"}
+    D --> Z(["Return"])
+    E -->|No| F{"No Beat<br/>&gt; 30 sec?"}
+    F -->|Yes| G["Staleness Timeout<br/>Clear HR to 0"]
+    F -->|No| Z
+    G --> Z
+    E -->|Yes| H["Calculate Beat Interval"]
+    H --> I{"Interval<br/>&gt;= 300ms?"}
+    I -->|No| J["Reject: Too Fast"]
+    I -->|Yes| K{"Interval<br/>&lt;= 2000ms?"}
+    K -->|No| L["Reject: Too Slow"]
+    K -->|Yes| M{"Warmup<br/>Done? 4+"}
+    J --> Z
+    L --> Z
+    M -->|No| N["Store in Warmup Buffer"]
+    N --> O{"Counter<br/>&gt;= 4?"}
+    O -->|Yes| P["Set Warmup Complete"]
+    O -->|No| Z
+    P --> Z
+    M -->|Yes| Q["Compute avg +/- 30%"]
+    Q --> R{"Within<br/>Range?"}
+    R -->|No| S["Reject Outlier"]
+    R -->|Yes| T["Add to 4-Beat FIFO"]
+    S --> Z
+    T --> U["Recalculate BPM"]
+    U --> V["Update hrBeatAvg"]
+    V --> W["Flash Red LED 10ms"]
+    W --> Z
+
+    style A fill:#1a3c5e,color:#fff
+    style D fill:#757575,color:#fff
+    style G fill:#757575,color:#fff
+    style J fill:#c62828,color:#fff
+    style L fill:#c62828,color:#fff
+    style S fill:#e65100,color:#fff
+    style V fill:#2e7d32,color:#fff
+        </div>
+        <div class="fig-caption">Figure 4: Heart rate detection algorithm flowchart with outlier rejection and rolling average computation</div>
+    </div>
+
+    <h4>Temperature Acquisition</h4>
+    <p>
+        The <code>readTemperature()</code> function queries the DS18B20 sensor via the OneWire protocol, performing a single-point sampling. LED outputs are disabled during the read cycle to prevent electrical noise from affecting the measurement. A <code>yield()</code> call is inserted to prevent watchdog timer resets during the conversion delay.
+    </p>
+
+    <h4>Transmission Schedule</h4>
+    <p>
+        The node transmits two types of packets on a fixed schedule with TDMA offsets to prevent multi-node collisions:
+    </p>
+    <ul>
+        <li><strong>Heartbeat (HB) Packets:</strong> Transmitted every 2000&nbsp;ms, containing the full telemetry payload with error flags.</li>
+        <li><strong>Data (DATA) Packets:</strong> Transmitted every 5000&nbsp;ms after the warm-up period, containing validated sensor readings only.</li>
+    </ul>
+    <p>
+        Each node's transmission is offset by <code>(COW_ID &minus; 1) &times; 500&nbsp;ms</code> from the base interval, providing non-overlapping time slots for up to 4 nodes per cycle.
+    </p>
+
+    <h4>Node Main Loop Flowchart</h4>
+    <div class="mermaid-container">
+        <div class="mermaid">
+flowchart TD
+    A(["Node Power On"]) --> B["Initialize I2C, SPI, OneWire"]
+    B --> C{"Sensors OK?"}
+    C -->|Yes| D["Configure MAX30102<br/>400Hz, 18-bit ADC"]
+    C -->|No| E["Set Error Flags<br/>Retry in 10s"]
+    E --> D
+    D --> F["Initialize SX1278<br/>433 MHz LoRa"]
+    F --> G{"LoRa OK?"}
+    G -->|Yes| H["Enter Main Loop"]
+    G -->|No| I["Red LED Blink 2x100ms"]
+    I --> F
+    H --> J[/"Main Loop Start"/]
+    J --> K["processHeartRate<br/>Sample MAX30102 IR"]
+    K --> L{"Beat<br/>Detected?"}
+    L -->|Yes| M["Validate Interval<br/>300-2000ms"]
+    L -->|No| N{"HB Timer<br/>2000ms?"}
+    M --> O{"Within 30%<br/>of Average?"}
+    O -->|Yes| P["Update 4-Beat<br/>Rolling Buffer"]
+    O -->|No| Q["Discard Outlier"]
+    P --> N
+    Q --> N
+    N -->|Yes| R["readTemperature<br/>Query DS18B20"]
+    N -->|No| S{"CMD Packet<br/>on DIO0?"}
+    R --> T["Assemble HB Packet"]
+    T --> U["LoRa Transmit<br/>with TDMA Offset"]
+    U --> V["Green LED Flash"]
+    V --> S
+    S -->|Yes| W{"CMD Type?"}
+    S -->|No| X["LED Status Update"]
+    W -->|LED_ON| Z1["Red LED On"]
+    W -->|LED_OFF| Z2["Red LED Off"]
+    W -->|PING| Z4["Transmit ACK"]
+    Z1 --> X
+    Z2 --> X
+    Z4 --> X
+    X --> J
+
+    style A fill:#1a3c5e,color:#fff
+    style H fill:#2e7d32,color:#fff
+    style I fill:#c62828,color:#fff
+    style E fill:#e65100,color:#fff
+    style U fill:#1565c0,color:#fff
+        </div>
+        <div class="fig-caption">Figure 5: Sensor node main loop flowchart showing data acquisition, transmission, and command handling</div>
+    </div>
+
+    <h3 id="sw-gateway">5.3 Gateway Firmware Logic</h3>
+    <p>
+        The gateway firmware (<code>Gateway.ino</code>, approximately 1410 lines) is a substantially more complex application managing radio reception, data processing, alert generation, GSM communication, OLED rendering, and user input. Its operation is governed by multiple cooperating state machines:
+    </p>
+
+    <h4>GSM State Machine</h4>
+    <p>
+        The <code>handleGsmState()</code> function implements a fully non-blocking state machine for SIM800L management:
+    </p>
+    <p>
+        Each state issues an AT command and transitions to a wait state that monitors the UART buffer for expected responses, with timeout handling for each step. This ensures that the gateway remains responsive during the 5&ndash;15 second SMS transmission process.
+    </p>
+    <div class="mermaid-container">
+        <div class="mermaid">
+stateDiagram-v2
+    [*] --> GSM_BOOT : Power On
+    GSM_BOOT : Send AT command
+    GSM_BOOT --> GSM_SET_TEXT : OK received
+    GSM_SET_TEXT : Send AT+CMGF=1
+    GSM_SET_TEXT --> GSM_IDLE : OK received
+    GSM_IDLE : Ready - Monitor pending flag
+    GSM_IDLE --> GSM_TX_START : SMS pending true
+    GSM_TX_START : Send AT+CMGS with phone
+    GSM_TX_START --> GSM_TX_BODY : Prompt received
+    GSM_TX_BODY : Send SMS content + Ctrl Z
+    GSM_TX_BODY --> GSM_WAIT_OK : Body sent
+    GSM_WAIT_OK : Await CMGS confirmation
+    GSM_WAIT_OK --> GSM_IDLE : Delivery confirmed
+    GSM_WAIT_OK --> GSM_BOOT : Timeout or Error
+    GSM_BOOT --> GSM_BOOT : No response retry
+    GSM_SET_TEXT --> GSM_BOOT : Error restart
+        </div>
+        <div class="fig-caption">Figure 6: GSM SMS transmission state machine diagram</div>
+    </div>
+
+    <h4>UI State Machine</h4>
+    <p>
+        The user interface operates across seven display states:
+    </p>
+    <ul>
+        <li><strong>S_DASH:</strong> Main dashboard showing real-time vital signs, signal quality, and alert status.</li>
+        <li><strong>S_MENU:</strong> Navigation menu with five categories (Monitor, Test, Config, Debug, Info).</li>
+        <li><strong>S_EDIT:</strong> Parameter editing mode with increment/decrement controls.</li>
+        <li><strong>S_TEST:</strong> Hardware test functions (LoRa ping, LED control, GSM call/SMS).</li>
+        <li><strong>S_DEBUG:</strong> Diagnostic view showing raw LoRa data, system memory, and CSQ values.</li>
+        <li><strong>S_INFO:</strong> System information display (firmware version, uptime, packet statistics).</li>
+        <li><strong>S_MONITOR:</strong> Extended real-time monitoring mode.</li>
+    </ul>
+    <div class="mermaid-container">
+        <div class="mermaid">
+stateDiagram-v2
+    [*] --> S_DASH
+    S_DASH : Real-Time Dashboard
+    S_DASH --> S_MENU : Menu Button Press
+    S_MENU : Main Navigation Menu
+    S_MENU --> S_DASH : Long Press Back
+    S_MENU --> S_MONITOR : Select Monitor
+    S_MENU --> S_TEST : Select Test
+    S_MENU --> S_EDIT : Select Config
+    S_MENU --> S_DEBUG : Select Debug
+    S_MENU --> S_INFO : Select Info
+    S_MONITOR : Extended Monitoring
+    S_MONITOR --> S_MENU : Long Press Back
+    S_TEST : Hardware Test Menu
+    S_TEST --> S_MENU : Long Press Back
+    S_EDIT : Configuration Editor
+    S_EDIT --> S_MENU : Long Press Back
+    S_DEBUG : Diagnostic View
+    S_DEBUG --> S_MENU : Long Press Back
+    S_INFO : System Information
+    S_INFO --> S_MENU : Long Press Back
+        </div>
+        <div class="fig-caption">Figure 7: Gateway UI navigation state machine with seven display states</div>
+    </div>
+
+    <h4>Alert Engine</h4>
+    <p>
+        The <code>queueAlert()</code> function serves as the centralized alert processor. When incoming telemetry values breach configured thresholds, it:
+    </p>
+    <ol>
+        <li>Validates that the alert cooldown period (configurable, 1&ndash;60 minutes) has elapsed since the last alert for the same node.</li>
+        <li>Constructs a descriptive SMS body including the cow ID, violation type, and current vital sign values (e.g., <code>"ID:1 T_HI T:39.8 HR:75 (HB)"</code>).</li>
+        <li>Activates the buzzer for three 100&nbsp;ms beeps as an audible alert.</li>
+        <li>Sets the <code>gsmSmsPending</code> flag, triggering the GSM state machine to initiate SMS delivery.</li>
+    </ol>
+    <div class="mermaid-container">
+        <div class="mermaid">
+flowchart TD
+    A(["Telemetry Received"]) --> B["Extract temp, hr, cowID"]
+    B --> C{"temp &gt;<br/>cfgTempHigh?"}
+    C -->|Yes| D["violation = T_HI"]
+    C -->|No| E{"temp &lt;<br/>cfgTempLow?"}
+    E -->|Yes| F["violation = T_LO"]
+    E -->|No| G{"hr &gt;<br/>cfgHrHigh?"}
+    G -->|Yes| H["violation = HR_HI"]
+    G -->|No| I{"hr &lt;<br/>cfgHrLow?"}
+    I -->|Yes| J["violation = HR_LO"]
+    I -->|No| K(["All Normal"])
+    D --> L["queueAlert"]
+    F --> L
+    H --> L
+    J --> L
+    L --> M{"Cooldown<br/>Elapsed?"}
+    M -->|No| N(["Suppress Alert"])
+    M -->|Yes| O["Build SMS Body"]
+    O --> P["Activate Buzzer 3x100ms"]
+    P --> Q["Set gsmSmsPending = true"]
+    Q --> R["Display Alert on OLED"]
+    R --> S["GSM State Machine<br/>Delivers SMS"]
+    S --> T(["Alert Complete"])
+
+    style A fill:#1a3c5e,color:#fff
+    style K fill:#2e7d32,color:#fff
+    style N fill:#757575,color:#fff
+    style D fill:#c62828,color:#fff
+    style H fill:#c62828,color:#fff
+    style F fill:#1565c0,color:#fff
+    style J fill:#1565c0,color:#fff
+    style T fill:#2e7d32,color:#fff
+        </div>
+        <div class="fig-caption">Figure 8: Alert generation and SMS delivery flowchart showing threshold evaluation and cooldown logic</div>
+    </div>
+
+    <h4>LoRa Auto-Recovery</h4>
+    <p>
+        The gateway continuously monitors the time since the last successfully received packet. If 30 seconds elapse without any reception, a "LORA LOST" warning is displayed on the dashboard. After 60 seconds of silence, the gateway automatically reinitializes the SX1278 module and rebroadcasts its sync word, attempting to restore the radio link without manual intervention.
+    </p>
+
+    <h4>Gateway Main Loop Flowchart</h4>
+    <div class="mermaid-container">
+        <div class="mermaid">
+flowchart TD
+    A(["Gateway Power On"]) --> B["Init OLED, SPI, UART2"]
+    B --> C["Load Config from NVS"]
+    C --> D["Init SX1278 433 MHz"]
+    D --> E["Boot SIM800L"]
+    E --> F[/"Main Loop"/]
+    F --> G{"LoRa DIO0<br/>Packet?"}
+    G -->|Yes| H["Read Packet"]
+    G -->|No| I["handleGsmState"]
+    H --> J{"Packet Type?"}
+    J -->|HB| K["Parse seq, cowID,<br/>temp, hr, errFlag"]
+    J -->|DATA| L["Parse seq, cowID,<br/>temp, hr"]
+    J -->|ACK| M["Log Response"]
+    K --> N["Update NodeData<br/>RSSI, LastSeen"]
+    L --> N
+    M --> I
+    N --> O{"Threshold<br/>Breach?"}
+    O -->|Yes| P{"Cooldown<br/>Elapsed?"}
+    O -->|No| I
+    P -->|Yes| Q["queueAlert + Buzzer"]
+    P -->|No| I
+    Q --> I
+    I --> R["scanButtons"]
+    R --> S["renderDashboard"]
+    S --> T{"Pkt Timeout<br/>&gt; 30s?"}
+    T -->|No| F
+    T -->|Yes| U{"&gt; 60s?"}
+    U -->|No| F
+    U -->|Yes| V["Reinit SX1278"]
+    V --> F
+
+    style A fill:#1a3c5e,color:#fff
+    style Q fill:#c62828,color:#fff
+    style V fill:#1565c0,color:#fff
+        </div>
+        <div class="fig-caption">Figure 9: Gateway main loop flowchart showing packet processing, alert generation, and auto-recovery</div>
+    </div>
+
+    <h3 id="sw-protocol">5.4 Communication Protocol</h3>
+
+    <h4>LoRa Radio Configuration</h4>
+    <table>
+        <thead>
+            <tr><th>Parameter</th><th>Value</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>Carrier Frequency</td><td>433.0 MHz</td></tr>
+            <tr><td>Bandwidth</td><td>125.0 kHz</td></tr>
+            <tr><td>Spreading Factor</td><td>7</td></tr>
+            <tr><td>Coding Rate</td><td>4/5</td></tr>
+            <tr><td>Sync Word</td><td>0x12</td></tr>
+            <tr><td>Transmit Power</td><td>10 dBm</td></tr>
+            <tr><td>Preamble Length</td><td>8 symbols</td></tr>
+        </tbody>
+    </table>
+
+    <h4>Packet Formats</h4>
+    <table>
+        <thead>
+            <tr><th>Packet Type</th><th>Direction</th><th>Format</th><th>Interval</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Heartbeat (HB)</td>
+                <td>Node &rarr; Gateway</td>
+                <td><code>HB,&lt;seq&gt;,&lt;cowID&gt;,&lt;temp&gt;,&lt;hr&gt;,&lt;errFlag&gt;</code></td>
+                <td>2 seconds</td>
+            </tr>
+            <tr>
+                <td>Data (DATA)</td>
+                <td>Node &rarr; Gateway</td>
+                <td><code>DATA,&lt;seq&gt;,&lt;cowID&gt;,&lt;temp&gt;,&lt;hr&gt;</code></td>
+                <td>5 seconds</td>
+            </tr>
+            <tr>
+                <td>Command (CMD)</td>
+                <td>Gateway &rarr; Node</td>
+                <td><code>CMD,LED_ON</code> / <code>CMD,LED_OFF</code> / <code>CMD,BLINK</code></td>
+                <td>On demand</td>
+            </tr>
+            <tr>
+                <td>Ping</td>
+                <td>Gateway &rarr; Node</td>
+                <td><code>PING</code></td>
+                <td>On demand</td>
+            </tr>
+            <tr>
+                <td>Acknowledgment</td>
+                <td>Node &rarr; Gateway</td>
+                <td><code>ACK</code></td>
+                <td>Response to PING</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h4>Packet Field Descriptions</h4>
+    <ul>
+        <li><strong>seq:</strong> 16-bit unsigned sequence counter (0&ndash;65535), incremented per transmission, used for packet loss detection.</li>
+        <li><strong>cowID:</strong> Integer identifier (1&ndash;9) assigned to each node, corresponding to the individual animal.</li>
+        <li><strong>temp:</strong> Body temperature in degrees Celsius, floating-point with one decimal precision.</li>
+        <li><strong>hr:</strong> Heart rate in beats per minute, integer value (0&ndash;255).</li>
+        <li><strong>errFlag:</strong> Error status indicator &mdash; <code>"0"</code> for no error, <code>"HR"</code> for heart rate sensor error, <code>"RTC"</code> for clock error, <code>"ALL"</code> for multiple failures.</li>
+    </ul>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     6. IMPLEMENTATION DETAILS
+     ════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="implementation">
+    <h2 class="section-title">6. Implementation Details</h2>
+
+    <h3 id="impl-steps">6.1 Step-by-Step Working</h3>
+    <p>
+        The complete operational sequence of the VetNode system from power-on to alert delivery is described below:
+    </p>
+
+    <h4>Phase 1: Initialization (Power-On)</h4>
+    <ol>
+        <li>Both the sensor node and gateway ESP32 boards power on and execute their respective <code>setup()</code> routines.</li>
+        <li>The node initializes the I2C bus (GPIO 21/22), OneWire bus (GPIO 15), and SPI bus (GPIO 5/18/19/23).</li>
+        <li>The MAX30102 sensor is configured with optimized parameters (LED brightness 0x1F, 400&nbsp;Hz sample rate, 18-bit resolution).</li>
+        <li>The DS3231 RTC is queried to verify I2C connectivity.</li>
+        <li>The SX1278 LoRa module is initialized at 433&nbsp;MHz with matched parameters on both node and gateway.</li>
+        <li>The gateway initializes the SH1106 OLED, loads saved configuration from NVS, and boots the SIM800L GSM modem via the AT command handshake sequence.</li>
+        <li>LED indicators on the node provide visual confirmation of successful initialization (green blink pattern).</li>
+    </ol>
+
+    <h4>Phase 2: Continuous Data Acquisition (Node)</h4>
+    <ol>
+        <li>The main loop executes continuously, calling <code>processHeartRate()</code> on each iteration to sample the MAX30102 IR channel.</li>
+        <li>When a cardiac beat is detected, the inter-beat interval is validated (300&ndash;2000&nbsp;ms), checked against the rolling average (&plusmn;30% tolerance), and added to the 4-beat circular buffer.</li>
+        <li>Every 2000&nbsp;ms (adjusted by TDMA offset), <code>readTemperature()</code> queries the DS18B20 and the node assembles a heartbeat packet.</li>
+        <li>The assembled packet (<code>HB,seq,cowID,temp,hr,errFlag</code>) is transmitted via the SX1278 at 433&nbsp;MHz.</li>
+        <li>Between transmissions, the node monitors <code>DIO0</code> for incoming command packets from the gateway.</li>
+    </ol>
+
+    <h4>Phase 3: Data Reception and Processing (Gateway)</h4>
+    <ol>
+        <li>The gateway continuously monitors the <code>DIO0</code> interrupt pin for incoming LoRa packets.</li>
+        <li>Upon packet reception, the raw string is parsed to extract the packet type (HB or DATA) and individual fields.</li>
+        <li>The extracted data is stored in the corresponding <code>NodeData</code> structure, indexed by cow ID, along with the RSSI value and reception timestamp.</li>
+        <li>Sequence number tracking detects missing packets and updates the packet loss counter.</li>
+    </ol>
+
+    <h4>Phase 4: Threshold Evaluation and Alert Generation</h4>
+    <ol>
+        <li>After updating the node data structure, the gateway compares the received temperature and heart rate values against the configured thresholds:
+            <ul>
+                <li>Temperature High: &gt; 39.5&deg;C (default)</li>
+                <li>Temperature Low: &lt; 37.0&deg;C (default)</li>
+                <li>Heart Rate High: &gt; 90 BPM (default)</li>
+                <li>Heart Rate Low: &lt; 50 BPM (default)</li>
+            </ul>
+        </li>
+        <li>If any threshold is breached and the cooldown period has elapsed, <code>queueAlert()</code> constructs a descriptive alert string.</li>
+        <li>The buzzer emits three 100&nbsp;ms beeps and the <code>gsmSmsPending</code> flag is set.</li>
+    </ol>
+
+    <h4>Phase 5: SMS Alert Delivery</h4>
+    <ol>
+        <li>The non-blocking GSM state machine detects the pending SMS flag and initiates transmission.</li>
+        <li><code>AT+CMGF=1</code> sets text mode, followed by <code>AT+CMGS="&lt;phone&gt;"</code> to address the recipient.</li>
+        <li>The alert body (e.g., <code>"ID:1 T_HI T:39.8 HR:75 (HB)"</code>) is sent, terminated by Ctrl+Z (ASCII 26).</li>
+        <li>The state machine waits for the <code>+CMGS:</code> confirmation response from the GSM network.</li>
+        <li>A "SMS SENT!" toast notification is displayed on the OLED for 3 seconds.</li>
+    </ol>
+
+    <h4>Phase 6: Dashboard Display and User Interaction</h4>
+    <ol>
+        <li>The <code>renderDashboard()</code> function refreshes the OLED display every 3 seconds with the latest data.</li>
+        <li>The display presents: firmware version header, GSM signal bars, cow ID, temperature, heart rate, LoRa RSSI bars, "Last Seen" elapsed time, and current alert status.</li>
+        <li>Button presses are detected by <code>scanButtons()</code> with debouncing and routed to the appropriate UI state handler for menu navigation, configuration editing, or hardware testing.</li>
+    </ol>
+
+    <h3 id="impl-integration">6.2 Hardware&ndash;Software Integration</h3>
+    <p>
+        The integration of hardware and software in the VetNode system follows a layered abstraction approach:
+    </p>
+    <ul>
+        <li><strong>Physical Layer:</strong> Electrical connections between the ESP32 and peripheral modules via standardized buses (SPI for LoRa, I2C for sensors and display, UART for GSM, OneWire for temperature, GPIO for LEDs and buttons).</li>
+        <li><strong>Driver Layer:</strong> Third-party Arduino libraries (RadioLib, Adafruit GFX, DallasTemperature, MAX30105, RTClib) provide hardware abstraction, exposing high-level APIs for sensor reading, packet transmission, and display rendering.</li>
+        <li><strong>Application Layer:</strong> Custom firmware logic implements the domain-specific behavior: beat detection algorithms, threshold evaluation, alert state management, TDMA scheduling, and the multi-screen user interface.</li>
+    </ul>
+    <p>
+        A critical integration consideration is the shared I2C bus on the node, where the MAX30102 (address 0x57) and DS3231 (address 0x68) coexist. The firmware ensures non-overlapping access through sequential polling in the main loop, avoiding bus contention. Similarly, LED outputs are disabled during DS18B20 temperature reads to prevent electrical noise interference.
+    </p>
+
+    <h3 id="impl-config">6.3 Configuration and Persistence</h3>
+    <p>
+        The gateway provides a comprehensive on-device configuration system accessible through the two-button menu interface. All parameters are stored in the ESP32's Non-Volatile Storage (NVS) partition using the <code>Preferences</code> library and persist across power cycles:
+    </p>
+    <table>
+        <thead>
+            <tr><th>Parameter</th><th>Range</th><th>Default</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>Temperature High Limit</td><td>35.0&ndash;45.0&deg;C</td><td>39.5&deg;C</td><td>Upper fever threshold</td></tr>
+            <tr><td>Temperature Low Limit</td><td>30.0&ndash;40.0&deg;C</td><td>37.0&deg;C</td><td>Hypothermia threshold</td></tr>
+            <tr><td>Heart Rate High Limit</td><td>50&ndash;200 BPM</td><td>90 BPM</td><td>Tachycardia threshold</td></tr>
+            <tr><td>Heart Rate Low Limit</td><td>30&ndash;90 BPM</td><td>50 BPM</td><td>Bradycardia threshold</td></tr>
+            <tr><td>SMS Alert Interval</td><td>1&ndash;60 min</td><td>5 min</td><td>Cooldown between repeated alerts</td></tr>
+            <tr><td>OLED Off Timeout</td><td>0&ndash;600 sec</td><td>Disabled (0)</td><td>Auto-sleep after inactivity</td></tr>
+            <tr><td>Gateway Sleep Timer</td><td>0&ndash;60 min</td><td>Disabled (0)</td><td>System sleep after no packets</td></tr>
+            <tr><td>Buzzer Enable</td><td>On/Off</td><td>On</td><td>Audible alert toggle</td></tr>
+            <tr><td>GSM Phone Number</td><td>String</td><td>+918805048846</td><td>SMS alert recipient</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     7. RESULTS & OBSERVATIONS
+     ════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="results">
+    <h2 class="section-title">7. Results &amp; Observations</h2>
+
+    <h3 id="res-output">7.1 System Output</h3>
+    <p>
+        The VetNode system was tested in controlled laboratory conditions and demonstrated the following outputs:
+    </p>
+
+    <h4>OLED Dashboard Output</h4>
+    <p>
+        The gateway OLED display renders a real-time dashboard with the following layout:
+    </p>
+    <pre><code>[VETNODE v1.3]  [GSM ▂▄▆█]  [-85dBm]
+════════════════════════════════════
+COW ID: 1        TEMP: 38.5C  HR: 72
+════════════════════════════════════
+[LoRa ▂▄▆█] -92dBm   LS: 2s ago
+STATUS: NORMAL</code></pre>
+    <p>
+        When an alert condition is detected, the status line inverts to high-contrast display with the violation type (e.g., <code>ALERT: T_HI</code>).
+    </p>
+
+    <h4>SMS Alert Output</h4>
+    <p>
+        Alert SMS messages are delivered in a concise, informational format:
+    </p>
+    <pre><code>ID:1 T_HI T:39.8 HR:75 (HB)</code></pre>
+    <p>
+        This format provides the farmer with immediate identification of the affected animal, the type of violation, and the actual vital sign readings, enabling informed decision-making without requiring physical proximity to the gateway.
+    </p>
+
+    <h4>Serial Debug Output</h4>
+    <p>
+        Both node and gateway produce detailed serial logging at 115200 baud, providing packet-level visibility into transmissions, receptions, RSSI values, sensor readings, and state machine transitions for development and troubleshooting purposes.
+    </p>
+
+    <h3 id="res-perf">7.2 Performance Metrics</h3>
+    <table>
+        <thead>
+            <tr><th>Metric</th><th>Observed Value</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>LoRa Communication Range</td><td>100&ndash;200 m (line-of-sight)</td><td>At 433 MHz, SF7, 10 dBm TX power</td></tr>
+            <tr><td>Heart Rate Accuracy</td><td>&plusmn;5 BPM</td><td>After 4-beat warm-up and outlier filtering</td></tr>
+            <tr><td>Temperature Accuracy</td><td>&plusmn;0.5&deg;C</td><td>DS18B20 factory-calibrated specification</td></tr>
+            <tr><td>Heartbeat Packet Interval</td><td>2.0 seconds</td><td>Consistent with TDMA offset accuracy</td></tr>
+            <tr><td>SMS Delivery Latency</td><td>5&ndash;15 seconds</td><td>From threshold breach detection to SMS receipt</td></tr>
+            <tr><td>Gateway Dashboard Refresh</td><td>3 seconds</td><td>OLED render cycle</td></tr>
+            <tr><td>Sensor Recovery Time</td><td>&le;10 seconds</td><td>Automatic re-initialization on I2C failure</td></tr>
+            <tr><td>Packet Loss Rate</td><td>&lt;2% (typical)</td><td>In clear line-of-sight conditions</td></tr>
+            <tr><td>System Uptime</td><td>Continuous (indefinite)</td><td>Non-blocking architecture prevents watchdog resets</td></tr>
+        </tbody>
+    </table>
+
+    <h3 id="res-threshold">7.3 Alert Threshold Behavior</h3>
+    <p>
+        The alert system was validated by simulating out-of-range conditions:
+    </p>
+    <ul>
+        <li><strong>Temperature High Alert:</strong> When the DS18B20 sensor reported values exceeding 39.5&deg;C, the gateway correctly identified the breach, activated the buzzer, displayed the alert on the OLED, and dispatched an SMS within 5&ndash;15 seconds.</li>
+        <li><strong>Heart Rate Alerts:</strong> Simulated bradycardia (&lt;50 BPM) and tachycardia (&gt;90 BPM) conditions triggered appropriate alert responses with correct violation type identification in the SMS body.</li>
+        <li><strong>Cooldown Mechanism:</strong> Repeated threshold breaches within the configured cooldown interval (default 5 minutes) were correctly suppressed, preventing SMS spam while maintaining the alert display on the dashboard.</li>
+        <li><strong>Combined Alerts:</strong> Simultaneous temperature and heart rate violations generated a single combined SMS, reducing message overhead.</li>
+        <li><strong>Graceful Degradation:</strong> When the MAX30102 sensor was physically disconnected, the node continued transmitting heartbeat packets with the <code>"HR"</code> error flag, and the gateway correctly displayed the degraded status without generating false health alerts.</li>
+    </ul>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     8. CONCLUSION
+     ════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="conclusion">
+    <h2 class="section-title">8. Conclusion</h2>
+
+    <h3 id="summary">8.1 Project Summary</h3>
+    <p>
+        The VetNode project successfully demonstrates a functional, cost-effective IoT-based cattle health monitoring system that addresses the critical gap in real-time livestock health surveillance for small to medium-scale farming operations. The system achieves its primary objectives of continuous vital sign monitoring, reliable long-range wireless data transmission, automated alert generation, and user-friendly field configuration.
+    </p>
+    <p>
+        The star-topology wireless sensor network, built on ESP32 microcontrollers with LoRa communication at 433&nbsp;MHz, provides a robust and scalable platform for multi-animal monitoring without dependence on local internet infrastructure. The non-blocking firmware architecture, driven by cooperating finite state machines, ensures that sensor acquisition, radio communication, GSM alert delivery, and user interface rendering operate concurrently without mutual interference.
+    </p>
+    <p>
+        The integration of the MAX30102 pulse oximetry sensor with a custom beat detection algorithm (featuring 4-beat rolling averages, outlier rejection, and staleness detection) and the DS18B20 digital temperature sensor provides clinically relevant vital sign measurements with acceptable accuracy for early anomaly detection. The descriptive SMS alert system, delivered via the SIM800L GSM modem, provides farmers with actionable health information for immediate veterinary decision-making.
+    </p>
+
+    <h3 id="learnings">8.2 Key Learnings</h3>
+    <ol>
+        <li><strong>Non-Blocking Design is Essential:</strong> Blocking operations in embedded systems with concurrent I/O requirements lead to data loss, UI unresponsiveness, and watchdog timer resets. State-machine-driven architecture resolves these issues comprehensively.</li>
+        <li><strong>LoRa Parameter Synchronization:</strong> All LoRa parameters (frequency, bandwidth, spreading factor, coding rate, sync word) must be precisely matched between transmitter and receiver. Even minor mismatches result in complete communication failure.</li>
+        <li><strong>GSM Module Power Requirements:</strong> The SIM800L module requires significantly more current (2A peaks) than the ESP32's 3.3V regulator can supply. A dedicated 5V/2A power source is essential for reliable GSM operation.</li>
+        <li><strong>Sensor Noise Mitigation:</strong> Shared power rails and GPIO activity can introduce noise into sensitive analog measurements. Disabling LED outputs during sensor reads and implementing digital filtering significantly improve data quality.</li>
+        <li><strong>TDMA for Multi-Node Scalability:</strong> Simple time-slotted transmission scheduling effectively prevents packet collisions without the overhead of a full medium access control (MAC) protocol.</li>
+        <li><strong>Persistent Configuration Improves Usability:</strong> Storing user-configurable parameters in NVS eliminates the need for firmware re-flashing during field deployment, a critical usability improvement for non-technical users.</li>
+        <li><strong>Graceful Degradation over Hard Failure:</strong> Designing the system to continue operation with partial sensor failures (reporting error flags rather than halting) significantly improves field reliability.</li>
+    </ol>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     9. FUTURE SCOPE
+     ════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="future">
+    <h2 class="section-title">9. Future Scope</h2>
+    <p>
+        The VetNode platform provides a solid foundation for several potential enhancements and extensions:
+    </p>
+    <ol>
+        <li><strong>Cloud Integration and Data Analytics:</strong> Integrating a Wi-Fi or GPRS uplink on the gateway to transmit telemetry data to a cloud platform (e.g., ThingSpeak, AWS IoT Core) would enable historical data storage, trend analysis, and predictive health modeling using machine learning algorithms.</li>
+        <li><strong>GPS-Based Animal Tracking:</strong> Adding a GPS module (e.g., NEO-6M) to each sensor node would enable geolocation tracking, providing insights into grazing patterns, movement anomalies, and geofencing alerts for escaped animals.</li>
+        <li><strong>SpO2 (Blood Oxygen) Monitoring:</strong> The MAX30102 sensor supports dual-wavelength (red + IR) pulse oximetry for blood oxygen saturation (SpO2) measurement. Implementing the SpO2 algorithm would add a clinically valuable vital sign without additional hardware.</li>
+        <li><strong>Solar-Powered Nodes:</strong> Integrating a small solar panel with a LiPo battery and charge controller would enable indefinite field deployment of sensor nodes without manual battery replacement.</li>
+        <li><strong>Mobile Application:</strong> Developing a companion mobile application (Android/iOS) with Bluetooth Low Energy (BLE) connectivity to the gateway would provide a richer user interface with graphical charts, historical data review, and remote configuration capabilities.</li>
+        <li><strong>Multi-Gateway Mesh Network:</strong> Extending the star topology to a mesh architecture with relay gateways would dramatically increase coverage area, enabling monitoring across large pastures and multiple farm zones.</li>
+        <li><strong>Accelerometer-Based Activity Monitoring:</strong> Adding an IMU (e.g., MPU6050) to sensor nodes would enable activity classification (standing, lying, walking, ruminating), providing additional behavioral health indicators.</li>
+        <li><strong>Machine Learning Anomaly Detection:</strong> Replacing fixed threshold alerts with a trained ML model that learns each animal's normal baseline patterns would reduce false positives and detect subtle health deviations earlier than static thresholds.</li>
+        <li><strong>Over-the-Air (OTA) Firmware Updates:</strong> Implementing ESP32 OTA update capability would allow remote firmware upgrades via Wi-Fi, eliminating the need for physical access to deployed nodes for software maintenance.</li>
+        <li><strong>Multi-Species Adaptation:</strong> The platform architecture is generalizable to other livestock species (goats, sheep, horses) with adjusted threshold ranges and additional species-specific sensors.</li>
+    </ol>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     10. REFERENCES
+     ════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="references">
+    <h2 class="section-title">10. References</h2>
+    <ol>
+        <li>Espressif Systems, "ESP32-WROOM-32 Datasheet," Version 3.4, 2023. Available: <em>https://www.espressif.com/en/products/socs/esp32</em></li>
+        <li>Semtech Corporation, "SX1276/77/78/79 Datasheet &mdash; 137 MHz to 1020 MHz Long Range Low Power Transceiver," Revision 7, 2020.</li>
+        <li>Maxim Integrated (now Analog Devices), "MAX30102 &mdash; High-Sensitivity Pulse Oximeter and Heart-Rate Sensor for Wearable Health," Datasheet, Rev. 1, 2018.</li>
+        <li>Maxim Integrated, "DS18B20 &mdash; Programmable Resolution 1-Wire Digital Thermometer," Datasheet, 2019.</li>
+        <li>Maxim Integrated, "DS3231 &mdash; Extremely Accurate I2C-Integrated RTC/TCXO/Crystal," Datasheet, 2015.</li>
+        <li>SIMCom, "SIM800L Hardware Design V1.01," Technical Reference, 2016.</li>
+        <li>J. Gromes, "RadioLib &mdash; Universal Wireless Communication Library," GitHub Repository, 2024. Available: <em>https://github.com/jgromes/RadioLib</em></li>
+        <li>Adafruit Industries, "Adafruit SH110X OLED Library," GitHub Repository, 2023.</li>
+        <li>SparkFun Electronics, "SparkFun MAX3010x Pulse and Proximity Sensor Library," GitHub Repository, 2021.</li>
+        <li>Arduino, "ESP32 Arduino Core &mdash; Preferences Library Documentation," 2023. Available: <em>https://docs.espressif.com/projects/arduino-esp32</em></li>
+        <li>A. Banhazi, T. M. Banhazi, and J. Black, "Precision Livestock Farming: A Suite of Electronic Systems to Ensure the Application of Best Practice Management on Livestock Farms," <em>Australian Journal of Multi-Disciplinary Engineering</em>, vol. 7, no. 1, pp. 1&ndash;14, 2009.</li>
+        <li>D. Berckmans, "General Introduction to Precision Livestock Farming," <em>Animal Frontiers</em>, vol. 7, no. 1, pp. 6&ndash;11, 2017.</li>
+        <li>LoRa Alliance, "LoRaWAN Specification v1.0.4," Technical Specification, 2022.</li>
+    </ol>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     FOOTER
+     ════════════════════════════════════════════════════════════════════ -->
+<hr style="margin-top: 60px; border: none; border-top: 2px solid var(--primary);">
+<p style="text-align: center; color: var(--text-muted); font-size: 0.9em; margin-top: 20px;">
+    <strong>VetNode: IoT-Based Cattle Health Monitoring System</strong><br>
+    Final Year Engineering Project Report &mdash; March 2026<br>
+    Version 1.3 (Production Release)
+</p>
+
+</body>
+</html>

@@ -1,5 +1,5 @@
 #include <Adafruit_GFX.h>
-#include <Adafruit_SH110X.h>
+#include <Adafruit_SSD1306.h>
 #include <RadioLib.h>
 #include <SPI.h>
 #include <Wire.h>
@@ -22,7 +22,7 @@
 #define SCREEN_HEIGHT 64
 #define OLED_RESET -1
 
-Adafruit_SH1106G display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 SX1278 lora = new Module(LORA_SS, LORA_DIO0, LORA_RST);
 
 void setup() {
@@ -32,10 +32,10 @@ void setup() {
 
   // 1. OLED Init
   Wire.begin(OLED_SDA, OLED_SCL);
-  if (display.begin(0x3C, true)) {
+  if (display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
     display.clearDisplay();
     display.setTextSize(1);
-    display.setTextColor(SH110X_WHITE);
+    display.setTextColor(SSD1306_WHITE);
     display.setCursor(0, 0);
     display.println("LORA RX INIT...");
     display.display();
@@ -83,7 +83,7 @@ void loop() {
     display.clearDisplay();
     display.setCursor(0, 0);
     display.println(">>> PACKET RECEIVED");
-    display.drawLine(0, 10, 128, 10, SH110X_WHITE);
+    display.drawLine(0, 10, 127, 10, SSD1306_WHITE);
 
     display.setCursor(0, 16);
     display.print("DATA: ");
