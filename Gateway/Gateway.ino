@@ -88,7 +88,6 @@ int beepRem = 0;
 unsigned long beepTimer = 0;
 int beepDur = 0;
 
-uint16_t gatewayPktSeq = 0;
 uint32_t totalPktsLost = 0;
 uint32_t totalPktsRcvd = 0;
 
@@ -113,7 +112,7 @@ GsmState gsmCommState = GSM_BOOT;
 GsmState gsmPrevState = GSM_BOOT;
 unsigned long gsmTimer = 0;
 int gsmRetryCount = 0;
-char gsmSmsBuffer[96] = "";
+char gsmSmsBuffer[160] = "";  // SMS max 160 chars
 bool gsmSmsPending = false;
 
 int menuIndex = 0;
@@ -496,6 +495,7 @@ void renderEditPage() {
     display.setCursor(10, 30);
     display.print(cfgSmsIntMin);
     display.print(" m");
+    display.setTextSize(1);
     display.setCursor(0, 50);
     display.print("(1, 5, 10, 30, 60)");
   } else if (editConfigId == 8) {
@@ -544,7 +544,7 @@ void renderToolPage() {
     display.setCursor(0, 14);
     display.println("Device: VETNODE GW");
     display.setCursor(0, 24);
-    display.println("FW: 1.4 PRO");
+    display.println("FW: 1.3");
     display.setCursor(0, 34);
     display.println("Build: 03-03-2026");
     display.setCursor(0, 44);
@@ -1058,6 +1058,20 @@ void handleGsmState() {
         resp[len++] = gsmSerial.read();
       resp[len] = '\0';
 
+      // Parse +CSQ response if present
+      char *csqPtr = strstr(resp, "+CSQ:");
+      if (csqPtr) {
+        int csq = 0, ber = 0;
+        if (sscanf(csqPtr, "+CSQ: %d,%d", &csq, &ber) >= 1) {
+          lastGsmCsq = csq;
+          if (csq == 99)
+            lastGsmDbm = -110;
+          else
+            lastGsmDbm = -113 + (2 * csq);  // standard 3GPP formula
+          Serial.printf("[GSM] Signal CSQ=%d dBm=%d\n", lastGsmCsq, lastGsmDbm);
+        }
+      }
+
       if (strstr(resp, ">")) {
         gsmCommState = GSM_TX_BODY;
       } else if (strstr(resp, "OK")) {
@@ -1068,13 +1082,26 @@ void handleGsmState() {
         else
           gsmCommState = GSM_IDLE;
       } else if (strstr(resp, "ERROR")) {
-        Serial.println("[GSM] Response: ERROR");
+        gsmRetryCount++;
+        Serial.printf("[GSM] Response: ERROR (retry %d/3)\n", gsmRetryCount);
+        if (gsmRetryCount >= 3) {
+          Serial.println("[GSM] Max retries reached, dropping SMS.");
+          gsmSmsPending = false;
+          gsmRetryCount = 0;
+        }
         gsmCommState = GSM_IDLE;
-        gsmSmsPending = false;
       }
     }
-    if (now - gsmTimer > 5000)
+    if (now - gsmTimer > 5000) {
+      gsmRetryCount++;
+      Serial.printf("[GSM] Response timeout (retry %d/3)\n", gsmRetryCount);
+      if (gsmRetryCount >= 3) {
+        Serial.println("[GSM] Max retries reached, dropping SMS.");
+        gsmSmsPending = false;
+        gsmRetryCount = 0;
+      }
       gsmCommState = GSM_IDLE;
+    }
     break;
 
   case GSM_TX_BODY:
@@ -1094,6 +1121,7 @@ void handleGsmState() {
       if (strstr(resp, "OK") || strstr(resp, "+CMGS:")) {
         gsmCommState = GSM_IDLE;
         gsmSmsPending = false;
+        gsmRetryCount = 0;
         showSmsToast = true;
         smsToastTimer = millis();
       }
@@ -1153,14 +1181,16 @@ void setup() {
   updateUI();
 }
 
-unsigned long lastMockLogic = 0;
 unsigned long lastDashRefresh = 0;
+unsigned long lastStatusSmsTime = 0;
+#define STATUS_SMS_INTERVAL_MS 1800000UL  // 30 minutes
 
 void loop() {
   esp_task_wdt_reset(); // Feed the Task Watchdog
   scanButtons();
-  handleGsmState(); // Run the asynchronous GSM manager
-  handleBeep();     // Run the asynchronous buzzer manager
+  handleGsmState();       // Run the asynchronous GSM manager
+  handleBeep();           // Run the asynchronous buzzer manager
+  sendPeriodicStatus();   // 30-min status SMS to admin
 
   // Non-blocking UI Auto-exit timer
   if (uiTimerActive && millis() - uiTimer > 1000) {
@@ -1168,10 +1198,30 @@ void loop() {
     uiTimerActive = false;
   }
 
-  // GSM passthrough
-  if (gsmSerial.available()) {
+  // GSM passthrough with +CSQ parsing
+  static char gsmLineBuf[64];
+  static int gsmLineLen = 0;
+  while (gsmSerial.available() && gsmCommState == GSM_IDLE) {
     char c = gsmSerial.read();
     Serial.write(c);
+    if (c == '\n' || c == '\r') {
+      if (gsmLineLen > 0) {
+        gsmLineBuf[gsmLineLen] = '\0';
+        // Parse +CSQ if present
+        char *csqP = strstr(gsmLineBuf, "+CSQ:");
+        if (csqP) {
+          int csq = 0, ber = 0;
+          if (sscanf(csqP, "+CSQ: %d,%d", &csq, &ber) >= 1) {
+            lastGsmCsq = csq;
+            lastGsmDbm = (csq == 99) ? -110 : (-113 + 2 * csq);
+            gsmOk = true;
+          }
+        }
+        gsmLineLen = 0;
+      }
+    } else if (gsmLineLen < 63) {
+      gsmLineBuf[gsmLineLen++] = c;
+    }
   }
   if (Serial.available())
     gsmSerial.write(Serial.read());
@@ -1203,10 +1253,6 @@ void loop() {
         if (sscanf(packet + 3, "%hu,%d,%f,%d,%15[^,\r\n]", &incomingSeq,
                    &cowId, &temp, &hr, errFlag) >= 4) {
           totalPktsRcvd++;
-          if (gatewayPktSeq > 0 && incomingSeq > gatewayPktSeq + 1) {
-            totalPktsLost += (incomingSeq - gatewayPktSeq - 1);
-          }
-          gatewayPktSeq = incomingSeq;
           lastCowId = cowId;
           lastCowTemp = temp;
           if (hr > 0) lastCowHr = hr;
@@ -1216,8 +1262,11 @@ void loop() {
             nd->temp = temp; nd->rssi = lora.getRSSI();
             nd->lastSeen = millis(); nd->pktsRcvd++;
             if (hr > 0) { nd->hr = hr; nd->hasHr = true; }
-            if (nd->pktSeq > 0 && incomingSeq > nd->pktSeq + 1)
-              nd->pktsLost += (incomingSeq - nd->pktSeq - 1);
+            if (nd->pktSeq > 0 && incomingSeq > nd->pktSeq + 1) {
+              uint16_t lost = incomingSeq - nd->pktSeq - 1;
+              nd->pktsLost += lost;
+              totalPktsLost += lost;
+            }
             nd->pktSeq = incomingSeq;
           }
 
@@ -1237,6 +1286,12 @@ void loop() {
 
           if (strlen(statusParts) > 0) {
             snprintf(alertStatus, sizeof(alertStatus), "%s", statusParts);
+            // Wake OLED on alert
+            lastUserAction = millis();
+            if (isOledOff) {
+              display.oled_command(SH110X_DISPLAYON);
+              isOledOff = false;
+            }
             char buf[64];
             snprintf(buf, sizeof(buf), "ID:%d %s T:%.1f HR:%d (HB)", cowId,
                      statusParts, temp, hr);
@@ -1266,10 +1321,6 @@ void loop() {
         if (sscanf(packet + 5, "%hu,%d,%f,%d", &incomingSeq, &cowId, &temp,
                    &hr) >= 4) {
           totalPktsRcvd++;
-          if (gatewayPktSeq > 0 && incomingSeq > gatewayPktSeq + 1) {
-            totalPktsLost += (incomingSeq - gatewayPktSeq - 1);
-          }
-          gatewayPktSeq = incomingSeq;
           lastCowId = cowId;
           lastCowTemp = temp;
           lastCowHr = hr;
@@ -1279,8 +1330,11 @@ void loop() {
             nd->temp = temp; nd->hr = hr; nd->hasHr = true;
             nd->rssi = lora.getRSSI(); nd->lastSeen = millis();
             nd->pktsRcvd++;
-            if (nd->pktSeq > 0 && incomingSeq > nd->pktSeq + 1)
-              nd->pktsLost += (incomingSeq - nd->pktSeq - 1);
+            if (nd->pktSeq > 0 && incomingSeq > nd->pktSeq + 1) {
+              uint16_t lost = incomingSeq - nd->pktSeq - 1;
+              nd->pktsLost += lost;
+              totalPktsLost += lost;
+            }
             nd->pktSeq = incomingSeq;
           }
 
@@ -1376,6 +1430,14 @@ void loop() {
     display.println("SLEEPING...");
     display.display();
     delay(1000);
+    display.oled_command(SH110X_DISPLAYOFF);
+    isOledOff = true;
+    // Light sleep for 30s, then wake to check for packets
+    esp_sleep_enable_timer_wakeup(30000000ULL);  // 30 sec in microseconds
+    esp_light_sleep_start();
+    // After wake: re-init LoRa receiver
+    if (loraOk) lora.startReceive();
+    lastUserAction = millis();
   }
 
   // ===============================
@@ -1387,6 +1449,41 @@ void loop() {
     isOledOff = true;
   }
 }
+// ==========================================
+// PERIODIC STATUS SMS (every 30 min)
+// ==========================================
+void sendPeriodicStatus() {
+  unsigned long now = millis();
+  if (now - lastStatusSmsTime < STATUS_SMS_INTERVAL_MS) return;
+  if (gsmSmsPending) return;  // don't interrupt an ongoing SMS
+  if (!gsmOk) return;
+
+  lastStatusSmsTime = now;
+
+  char uptimeBuf[10];
+  getUptime(uptimeBuf);
+
+  // Build status message
+  char msg[160];
+  if (lastCowId != 0) {
+    snprintf(msg, sizeof(msg),
+             "VETNODE STATUS\nID:%d T:%.1fC HR:%d\nStatus:%s\nNodes:%d Up:%s",
+             lastCowId, lastCowTemp, lastCowHr, alertStatus, numActiveNodes,
+             uptimeBuf);
+  } else {
+    snprintf(msg, sizeof(msg),
+             "VETNODE STATUS\nNo telemetry yet\nNodes:%d Up:%s",
+             numActiveNodes, uptimeBuf);
+  }
+
+  Serial.print("[STATUS SMS] ");
+  Serial.println(msg);
+
+  strncpy(gsmSmsBuffer, msg, sizeof(gsmSmsBuffer) - 1);
+  gsmSmsBuffer[sizeof(gsmSmsBuffer) - 1] = '\0';
+  gsmSmsPending = true;
+}
+
 // Helper to trigger SMS and buzzer alerts
 void queueAlert(const char *reason) {
   // Always try to queue alerts if threshold breached
